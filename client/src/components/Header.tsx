@@ -17,19 +17,17 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </Link>
           
           <nav className="hidden md:flex space-x-6">
-            <Link href="/gallery">
-              <a className="font-medium hover:text-[#06B6D4] transition-colors duration-200">Gallery</a>
+            <Link href="/gallery" className="font-medium hover:text-[#06B6D4] transition-colors duration-200">
+              Gallery
             </Link>
             <a href="#" className="font-medium hover:text-[#06B6D4] transition-colors duration-200">Models</a>
             <a href="#" className="font-medium hover:text-[#06B6D4] transition-colors duration-200">How It Works</a>
           </nav>
           
           <div className="flex items-center space-x-4">
-            <Link href="/gallery">
-              <a className="glass px-3 py-1.5 rounded-full text-sm flex items-center space-x-1 hover:bg-[#334155] transition-all duration-200">
-                <i className="ri-history-line"></i>
-                <span>History</span>
-              </a>
+            <Link href="/gallery" className="glass px-3 py-1.5 rounded-full text-sm flex items-center space-x-1 hover:bg-[#334155] transition-all duration-200">
+              <i className="ri-history-line"></i>
+              <span>History</span>
             </Link>
             <button className="glass bg-[#9333EA]/20 px-3 py-1.5 rounded-full text-sm flex items-center space-x-1 hover:bg-[#9333EA]/30 transition-all duration-200">
               <i className="ri-user-line"></i>

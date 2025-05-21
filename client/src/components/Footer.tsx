@@ -5,13 +5,11 @@ export default function Footer() {
     <footer className="glass border-t border-white/5 py-6">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <Link href="/">
-            <a className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center">
-                <i className="ri-brain-line text-sm"></i>
-              </div>
-              <span className="font-display font-bold">NeuralCanvas<span className="text-[#06B6D4]">AI</span></span>
-            </a>
+          <Link href="/" className="flex items-center space-x-2 mb-4 md:mb-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center">
+              <i className="ri-brain-line text-sm"></i>
+            </div>
+            <span className="font-display font-bold">NeuralCanvas<span className="text-[#06B6D4]">AI</span></span>
           </Link>
           
           <div className="flex space-x-4 mb-4 md:mb-0">

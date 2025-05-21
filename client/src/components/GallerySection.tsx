@@ -16,10 +16,8 @@ export default function GallerySection() {
     <section>
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-display font-bold text-2xl">Recent Creations</h2>
-        <Link href="/gallery">
-          <a className="text-[#06B6D4] text-sm flex items-center gap-1 hover:underline">
-            View All <i className="ri-arrow-right-line"></i>
-          </a>
+        <Link href="/gallery" className="text-[#06B6D4] text-sm flex items-center gap-1 hover:underline">
+          View All <i className="ri-arrow-right-line"></i>
         </Link>
       </div>
       

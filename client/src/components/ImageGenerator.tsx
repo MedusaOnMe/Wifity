@@ -79,13 +79,35 @@ export default function ImageGenerator() {
   
   return (
     <section className="mb-16">
-      <Card className="glass rounded-3xl border border-white/5 overflow-hidden glow-border">
+      <Card className="glass rounded-3xl border border-white/5 overflow-hidden glow-border relative backdrop-blur-sm">
+        {/* Neural circuit design overlay */}
+        <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <pattern id="circuit-board" width="120" height="120" patternUnits="userSpaceOnUse">
+              <path d="M20 60 L40 60 L40 30 L60 30 L60 60 L100 60" fill="none" stroke="rgba(147, 51, 234, 0.5)" strokeWidth="1"/>
+              <path d="M60 60 L60 100 L30 100 L30 80" fill="none" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1"/>
+              <circle cx="20" cy="60" r="3" fill="rgba(147, 51, 234, 0.5)"/>
+              <circle cx="60" cy="30" r="3" fill="rgba(6, 182, 212, 0.5)"/>
+              <circle cx="60" cy="60" r="3" fill="rgba(236, 72, 153, 0.5)"/>
+              <circle cx="100" cy="60" r="3" fill="rgba(147, 51, 234, 0.5)"/>
+              <circle cx="30" cy="100" r="3" fill="rgba(6, 182, 212, 0.5)"/>
+              <circle cx="30" cy="80" r="3" fill="rgba(147, 51, 234, 0.5)"/>
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#circuit-board)"/>
+          </svg>
+        </div>
+        
         <CardContent className="p-0">
-          <div className="p-6 md:p-8">
+          <div className="p-6 md:p-8 relative">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display font-bold text-2xl">Image Generator</h2>
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center mr-3">
+                  <i className="ri-brush-3-line text-lg"></i>
+                </div>
+                <h2 className="font-display font-bold text-2xl">Neural <span className="text-gradient">Image Creator</span></h2>
+              </div>
               <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-400">Model:</span>
+                <span className="text-xs text-gray-400">Engine:</span>
                 <select className="glass py-1 px-3 rounded-full text-sm border border-white/5 focus:outline-none focus:ring-2 focus:ring-[#9333EA] bg-transparent">
                   <option>DALL-E 3</option>
                   <option disabled>Stable Diffusion</option>
@@ -96,20 +118,23 @@ export default function ImageGenerator() {
             
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
-                <div className="glass relative rounded-xl overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-[#06B6D4]">
-                  <textarea 
-                    value={prompt}
-                    onChange={handlePromptChange}
-                    placeholder="Describe the image you want to create... Be detailed and specific for best results."
-                    className="w-full p-4 pr-12 h-32 md:h-40 bg-transparent text-gray-100 focus:outline-none resize-none font-medium"
-                  />
-                  <div className="absolute bottom-3 right-3 flex space-x-2">
-                    <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors">
-                      <i className="ri-magic-line text-[#9333EA]"></i>
-                    </button>
-                    <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors">
-                      <i className="ri-terminal-line text-[#06B6D4]"></i>
-                    </button>
+                <div className="relative">
+                  <div className="glass relative rounded-xl overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-[#06B6D4] border border-white/10">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#9333EA] via-[#06B6D4] to-[#EC4899] opacity-70"></div>
+                    <textarea 
+                      value={prompt}
+                      onChange={handlePromptChange}
+                      placeholder="Describe the image you want to create... Be detailed and specific for best results."
+                      className="w-full p-4 pr-12 h-32 md:h-40 bg-transparent text-gray-100 focus:outline-none resize-none font-medium"
+                    />
+                    <div className="absolute bottom-3 right-3 flex space-x-2">
+                      <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors group">
+                        <i className="ri-magic-line text-[#9333EA] group-hover:text-[#b366f3] transition-colors"></i>
+                      </button>
+                      <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors group">
+                        <i className="ri-terminal-line text-[#06B6D4] group-hover:text-[#25d8f5] transition-colors"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -119,7 +144,7 @@ export default function ImageGenerator() {
                       key={index}
                       type="button"
                       onClick={() => handleSamplePromptClick(samplePrompt)}
-                      className="glass px-3 py-1 rounded-full text-xs bg-[#334155]/30 cursor-pointer hover:bg-[#334155]/50 transition-colors"
+                      className="glass px-3 py-1 rounded-full text-xs bg-[#334155]/30 cursor-pointer hover:bg-[#334155]/50 hover:text-[#06B6D4] transition-colors"
                     >
                       {samplePrompt}
                     </button>
@@ -129,33 +154,45 @@ export default function ImageGenerator() {
               
               <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                 <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="glass p-3 rounded-xl">
-                    <label className="text-xs text-gray-400 block mb-1">Size</label>
+                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#9333EA]/30 transition-colors">
+                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#9333EA] group-hover:w-full transition-all duration-300"></div>
+                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
+                      <i className="ri-aspect-ratio-line mr-1 text-[#9333EA]"></i>
+                      Dimensions
+                    </label>
                     <select 
                       value={size}
                       onChange={(e) => setSize(e.target.value)}
                       className="bg-transparent w-full focus:outline-none text-sm"
                     >
-                      <option value="1024x1024">1024 × 1024</option>
-                      <option value="1024x1792">1024 × 1792</option>
-                      <option value="1792x1024">1792 × 1024</option>
+                      <option value="1024x1024">1024 × 1024 (Square)</option>
+                      <option value="1024x1792">1024 × 1792 (Portrait)</option>
+                      <option value="1792x1024">1792 × 1024 (Landscape)</option>
                     </select>
                   </div>
                   
-                  <div className="glass p-3 rounded-xl">
-                    <label className="text-xs text-gray-400 block mb-1">Quality</label>
+                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#06B6D4]/30 transition-colors">
+                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#06B6D4] group-hover:w-full transition-all duration-300"></div>
+                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
+                      <i className="ri-hd-line mr-1 text-[#06B6D4]"></i>
+                      Resolution
+                    </label>
                     <select 
                       value={quality}
                       onChange={(e) => setQuality(e.target.value)}
                       className="bg-transparent w-full focus:outline-none text-sm"
                     >
-                      <option value="standard">Standard</option>
-                      <option value="hd">HD</option>
+                      <option value="standard">Standard (Fast)</option>
+                      <option value="hd">HD (Premium)</option>
                     </select>
                   </div>
                   
-                  <div className="glass p-3 rounded-xl col-span-2 md:col-span-1">
-                    <label className="text-xs text-gray-400 block mb-1">Style</label>
+                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#EC4899]/30 transition-colors col-span-2 md:col-span-1">
+                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#EC4899] group-hover:w-full transition-all duration-300"></div>
+                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
+                      <i className="ri-palette-line mr-1 text-[#EC4899]"></i>
+                      Rendering Style
+                    </label>
                     <select 
                       value={style}
                       onChange={(e) => {
@@ -165,8 +202,8 @@ export default function ImageGenerator() {
                       }}
                       className="bg-transparent w-full focus:outline-none text-sm"
                     >
-                      <option value="vivid">Vivid</option>
-                      <option value="natural">Natural</option>
+                      <option value="vivid">Vivid (Enhanced Colors)</option>
+                      <option value="natural">Natural (Realistic Look)</option>
                     </select>
                   </div>
                 </div>
@@ -174,18 +211,20 @@ export default function ImageGenerator() {
                 <Button
                   type="submit"
                   disabled={isPending}
-                  className="bg-gradient-to-r from-[#9333EA] to-[#06B6D4] hover:opacity-90 transition-opacity py-3 px-6 rounded-xl font-medium flex items-center justify-center gap-2 text-white h-12"
+                  className="relative overflow-hidden bg-gradient-to-r from-[#9333EA] to-[#06B6D4] hover:opacity-90 transition-all py-3 px-6 rounded-xl font-medium flex items-center justify-center gap-2 text-white h-12 shadow-lg shadow-[#9333EA]/20 group"
                 >
+                  <span className="absolute inset-0 bg-gradient-to-r from-[#06B6D4] to-[#9333EA] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
+                  
                   {isPending ? (
-                    <>
+                    <div className="flex items-center justify-center gap-2 relative z-10">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Processing...
-                    </>
+                      <span>Creating Masterpiece...</span>
+                    </div>
                   ) : (
-                    <>
-                      <i className="ri-bubble-chart-line"></i>
-                      Generate Image
-                    </>
+                    <div className="flex items-center justify-center gap-2 relative z-10">
+                      <i className="ri-ai-generate text-lg"></i>
+                      <span>Generate Image</span>
+                    </div>
                   )}
                 </Button>
               </div>

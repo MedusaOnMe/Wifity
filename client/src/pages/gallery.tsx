@@ -28,11 +28,9 @@ export default function Gallery() {
             <h1 className="font-display font-bold text-3xl md:text-4xl">
               Your <span className="text-gradient">AI Creations</span>
             </h1>
-            <Link href="/">
-              <a className="glass px-4 py-2 rounded-lg hover:bg-[#334155] transition-colors flex items-center gap-2">
-                <i className="ri-add-line"></i>
-                Create New
-              </a>
+            <Link href="/" className="glass px-4 py-2 rounded-lg hover:bg-[#334155] transition-colors flex items-center gap-2">
+              <i className="ri-add-line"></i>
+              Create New
             </Link>
           </div>
           
@@ -95,10 +93,8 @@ export default function Gallery() {
                 <p className="text-gray-400 max-w-md mx-auto mb-6">
                   Start generating amazing AI art using our powerful image generator.
                 </p>
-                <Link href="/">
-                  <a className="inline-block px-4 py-2 bg-gradient-to-r from-[#9333EA] to-[#06B6D4] rounded-lg text-white font-medium">
-                    Create Your First Image
-                  </a>
+                <Link href="/" className="inline-block px-4 py-2 bg-gradient-to-r from-[#9333EA] to-[#06B6D4] rounded-lg text-white font-medium">
+                  Create Your First Image
                 </Link>
               </CardContent>
             </Card>
