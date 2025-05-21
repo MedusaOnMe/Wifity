@@ -233,48 +233,85 @@ export default function ImageGenerator() {
           
           <div className="relative">
             {isPending && (
-              <div className="particles bg-[#0F172A]/50 min-h-[400px] flex flex-col items-center justify-center p-8">
-                <div className="w-12 h-12 rounded-full border-4 border-[#9333EA] border-t-transparent animate-spin mb-6"></div>
-                <h3 className="font-display text-xl mb-2">Creating Your Vision</h3>
-                <p className="text-gray-400 text-center max-w-md">Our AI is generating your image now. This usually takes 10-15 seconds depending on complexity...</p>
+              <div className="particles bg-[#0F172A]/80 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl backdrop-blur-sm border border-white/5 relative overflow-hidden">
+                {/* Neural network animation effect */}
+                <div className="absolute inset-0 overflow-hidden opacity-30">
+                  <svg width="100%" height="100%" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                    <g fill="none" stroke="rgba(147, 51, 234, 0.5)" strokeWidth="1">
+                      <path d="M0,100 Q400,0 800,100" className="animate-pulse" />
+                      <path d="M0,200 Q400,100 800,200" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
+                      <path d="M0,300 Q400,200 800,300" className="animate-pulse" style={{ animationDelay: '1s' }} />
+                    </g>
+                  </svg>
+                </div>
+                
+                <div className="w-16 h-16 relative mb-8">
+                  <div className="absolute inset-0 rounded-full border-4 border-[#9333EA] border-t-transparent animate-spin"></div>
+                  <div className="absolute inset-2 rounded-full border-4 border-[#06B6D4] border-b-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+                  <div className="absolute inset-4 rounded-full border-4 border-[#EC4899] border-l-transparent animate-spin" style={{ animationDuration: '2s' }}></div>
+                </div>
+
+                <h3 className="font-display text-2xl mb-2 text-gradient">Creating Neural Masterpiece</h3>
+                <p className="text-gray-300 text-center max-w-md">Our advanced AI is processing your prompt and generating a unique visual creation. This artistic process typically takes 10-15 seconds...</p>
                 
                 <div className="mt-8 w-full max-w-md">
                   <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span>Processing Image</span>
-                    <span>In progress...</span>
+                    <span className="flex items-center"><i className="ri-cpu-line mr-1"></i> Neural Processing</span>
+                    <span className="flex items-center"><i className="ri-flashlight-line mr-1"></i> Rendering in progress</span>
                   </div>
-                  <div className="w-full bg-[#334155]/30 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-[#06B6D4] h-full w-3/4 rounded-full animate-pulse"></div>
+                  <div className="w-full h-2 rounded-full overflow-hidden bg-gradient-to-r from-[#1E293B]/50 to-[#1E293B]/50 backdrop-blur-sm p-0.5">
+                    <div className="relative h-full w-full rounded-full overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#9333EA] via-[#06B6D4] to-[#EC4899]"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                      <div className="absolute inset-y-0 left-0 bg-[#0F172A] right-1/4 animate-[progressAnimation_2s_ease-in-out_infinite]"></div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
             
             {!isPending && generatedImageUrl && (
-              <div className="relative">
+              <div className="relative rounded-xl overflow-hidden group">
+                {/* Decorative frame */}
+                <div className="absolute inset-0 p-0.5 bg-gradient-to-br from-[#9333EA] via-[#06B6D4] to-[#EC4899] opacity-70 z-10"></div>
+                
                 <img 
                   src={generatedImageUrl} 
                   alt="AI generated image based on your prompt" 
-                  className="w-full h-auto object-cover"
+                  className="w-full h-auto object-cover relative z-0"
                 />
                 
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0F172A]/90 to-transparent p-4 flex justify-between items-center">
-                  <div>
-                    <span className="text-xs bg-[#9333EA]/30 px-2 py-1 rounded-md">DALL-E 3</span>
+                <div className="absolute top-4 left-4 z-20">
+                  <span className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
+                    <i className="ri-cpu-line text-[#9333EA] mr-1"></i>
+                    <span>DALL-E 3</span>
+                  </span>
+                </div>
+                
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0F172A]/95 to-transparent p-6 flex justify-between items-center z-20">
+                  <div className="max-w-md">
+                    <p className="text-sm text-gray-300 line-clamp-1 mb-1">{prompt.slice(0, 100)}{prompt.length > 100 ? '...' : ''}</p>
+                    <div className="flex items-center text-xs text-gray-400">
+                      <span className="mr-4 flex items-center"><i className="ri-aspect-ratio-line mr-1"></i> {size}</span>
+                      <span className="mr-4 flex items-center"><i className="ri-palette-line mr-1"></i> {style}</span>
+                    </div>
                   </div>
                   
                   <div className="flex space-x-2">
                     <button 
                       onClick={handleDownload}
-                      className="p-2 rounded-lg bg-[#1E293B]/70 hover:bg-[#334155] transition-colors"
+                      className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1"
                     >
-                      <i className="ri-download-line"></i>
+                      <i className="ri-download-line text-[#06B6D4]"></i>
+                      <span className="text-xs hidden group-hover:inline-block transition-all">Save</span>
                     </button>
-                    <button className="p-2 rounded-lg bg-[#1E293B]/70 hover:bg-[#334155] transition-colors">
-                      <i className="ri-share-line"></i>
+                    <button className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1">
+                      <i className="ri-share-line text-[#EC4899]"></i>
+                      <span className="text-xs hidden group-hover:inline-block transition-all">Share</span>
                     </button>
-                    <button className="p-2 rounded-lg bg-[#1E293B]/70 hover:bg-[#334155] transition-colors">
-                      <i className="ri-more-2-line"></i>
+                    <button className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1">
+                      <i className="ri-refresh-line text-[#9333EA]"></i>
+                      <span className="text-xs hidden group-hover:inline-block transition-all">Retry</span>
                     </button>
                   </div>
                 </div>
@@ -282,30 +319,69 @@ export default function ImageGenerator() {
             )}
             
             {!isPending && !generatedImageUrl && !isError && (
-              <div className="bg-[#1E293B]/30 min-h-[400px] flex flex-col items-center justify-center p-8">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#9333EA]/30 to-[#06B6D4]/30 flex items-center justify-center mb-6">
-                  <i className="ri-image-add-line text-4xl text-[#06B6D4]"></i>
+              <div className="bg-[#1E293B]/30 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl border border-white/5 relative overflow-hidden">
+                {/* Background decorative elements */}
+                <div className="absolute inset-0 overflow-hidden opacity-10">
+                  <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+                    <defs>
+                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(147, 51, 234, 0.3)" strokeWidth="0.5" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                    <circle cx="400" cy="200" r="150" fill="none" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" strokeDasharray="5,5" />
+                    <circle cx="400" cy="200" r="100" fill="none" stroke="rgba(236, 72, 153, 0.2)" strokeWidth="1" strokeDasharray="3,3" />
+                  </svg>
                 </div>
-                <h3 className="font-display text-xl mb-2">Ready to Create</h3>
-                <p className="text-gray-400 text-center max-w-md">Enter a detailed prompt above and click Generate to create your AI masterpiece</p>
+                
+                <div className="relative w-28 h-28 mb-8">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#9333EA]/30 via-[#06B6D4]/30 to-[#EC4899]/30 animate-pulse"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <i className="ri-image-add-line text-5xl text-white"></i>
+                  </div>
+                </div>
+                
+                <h3 className="font-display text-2xl mb-3 text-gradient">Unleash AI Creativity</h3>
+                <p className="text-gray-300 text-center max-w-md">Enter a detailed prompt above and watch as advanced neural networks transform your words into stunning visual art</p>
+                
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
+                    <i className="ri-brush-3-line text-[#9333EA] mr-1"></i>
+                    <span>Artistic Details</span>
+                  </div>
+                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
+                    <i className="ri-landscape-line text-[#06B6D4] mr-1"></i>
+                    <span>Scene Description</span>
+                  </div>
+                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
+                    <i className="ri-emotion-line text-[#EC4899] mr-1"></i>
+                    <span>Style Keywords</span>
+                  </div>
+                </div>
               </div>
             )}
             
             {isError && (
-              <div className="bg-[#0F172A]/50 min-h-[400px] flex flex-col items-center justify-center p-8">
-                <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mb-6">
-                  <i className="ri-error-warning-line text-3xl text-red-500"></i>
+              <div className="bg-[#0F172A]/70 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl border border-red-500/20 backdrop-blur-sm">
+                <div className="w-24 h-24 relative mb-6">
+                  <div className="absolute inset-0 rounded-full bg-red-500/10 animate-pulse"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <i className="ri-error-warning-line text-4xl text-red-500"></i>
+                  </div>
                 </div>
-                <h3 className="font-display text-xl mb-2">Generation Failed</h3>
-                <p className="text-gray-400 text-center max-w-md">
+                
+                <h3 className="font-display text-2xl mb-3 text-red-400">Generation Failed</h3>
+                <p className="text-gray-300 text-center max-w-md">
                   {typeof error === 'object' && error !== null && 'message' in error
                     ? String(error.message)
                     : "There was an issue with your request. This could be due to content policy restrictions or a temporary service issue."}
                 </p>
+                
                 <button 
                   onClick={handleSubmit}
-                  className="mt-6 px-4 py-2 bg-[#334155] rounded-lg hover:bg-[#475569] transition-colors"
+                  className="mt-8 px-5 py-2.5 glass bg-red-500/10 hover:bg-red-500/20 transition-colors rounded-xl border border-red-500/30 flex items-center"
                 >
+                  <i className="ri-restart-line mr-2"></i>
                   Try Again
                 </button>
               </div>
