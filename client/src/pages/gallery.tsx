@@ -69,7 +69,7 @@ export default function Gallery() {
                       </span>
                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => downloadImage(image.url, `neuralcanvas-${image.id}`)}
+                          onClick={() => downloadImage(image.url, `memex-${image.id}`)}
                           className="p-1.5 rounded-lg bg-primary-700 hover:bg-primary-600 transition-colors"
                         >
                           <i className="ri-download-line text-sm"></i>

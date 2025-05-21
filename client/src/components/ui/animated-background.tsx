@@ -1,211 +1,98 @@
-import { useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useRef, useEffect } from "react";
 
 export function AnimatedBackground() {
-  return (
-    <div className="fixed inset-0 -z-10 overflow-hidden">
-      <div className="absolute inset-0 bg-[#0F172A]" />
-      
-      {/* Neural network visualization in the background */}
-      <div className="absolute inset-0 opacity-10">
-        <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="neural-grid" x="0" y="0" width="50" height="50" patternUnits="userSpaceOnUse">
-              <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(147, 51, 234, 0.3)" strokeWidth="0.5" />
-            </pattern>
-            <linearGradient id="neural-fade" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="rgba(147, 51, 234, 0.1)" />
-              <stop offset="100%" stopColor="rgba(6, 182, 212, 0.1)" />
-            </linearGradient>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#neural-grid)" />
-          <rect width="100%" height="100%" fill="url(#neural-fade)" />
-        </svg>
-      </div>
-      
-      {/* Animated gradient orbs */}
-      <div className="absolute top-0 right-0 w-full h-full">
-        <motion.div 
-          className="absolute right-[10%] top-[5%] w-96 h-96 rounded-full bg-[#9333EA]"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.1, 0.2, 0.1],
-            x: [0, 20, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          style={{
-            filter: "blur(90px)"
-          }}
-        />
-        
-        <motion.div 
-          className="absolute right-[30%] top-[25%] w-64 h-64 rounded-full bg-[#EC4899]"
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.05, 0.1, 0.05],
-            x: [0, -30, 0],
-            y: [0, 20, 0],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          style={{
-            filter: "blur(70px)"
-          }}
-        />
-      </div>
-      
-      <div className="absolute bottom-0 left-0 w-full h-full">
-        <motion.div 
-          className="absolute left-[10%] bottom-[5%] w-96 h-96 rounded-full bg-[#06B6D4]"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.1, 0.15, 0.1],
-            x: [0, -20, 0],
-            y: [0, 20, 0],
-          }}
-          transition={{
-            duration: 14,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          style={{
-            filter: "blur(90px)"
-          }}
-        />
-        
-        <motion.div 
-          className="absolute left-[40%] bottom-[15%] w-72 h-72 rounded-full bg-[#3B82F6]"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.05, 0.1, 0.05],
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          style={{
-            filter: "blur(80px)"
-          }}
-        />
-      </div>
-      
-      {/* Floating particles */}
-      <SVGParticles />
-      
-      {/* Scanner lines effect */}
-      <motion.div 
-        className="absolute inset-0 overflow-hidden opacity-10"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.05 }}
-        transition={{ duration: 2 }}
-      >
-        <motion.div 
-          className="w-full h-0.5 bg-gradient-to-r from-transparent via-[#06B6D4] to-transparent"
-          animate={{ 
-            y: ["-100vh", "200vh"],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-        <motion.div 
-          className="w-full h-0.5 bg-gradient-to-r from-transparent via-[#9333EA] to-transparent"
-          animate={{ 
-            y: ["-50vh", "250vh"],
-          }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-      </motion.div>
-    </div>
-  );
-}
-
-function SVGParticles() {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   
   useEffect(() => {
-    if (!svgRef.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    const svg = svgRef.current;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
     
-    // Create particles
-    const particlesCount = 15;
-    const particles = [];
-    
-    for (let i = 0; i < particlesCount; i++) {
-      const size = Math.random() * 3 + 1;
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const opacity = Math.random() * 0.5 + 0.1;
-      
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', x.toString());
-      circle.setAttribute('cy', y.toString());
-      circle.setAttribute('r', size.toString());
-      circle.setAttribute('fill', i % 2 === 0 ? '#9333EA' : '#06B6D4');
-      circle.setAttribute('opacity', opacity.toString());
-      
-      svg.appendChild(circle);
-      particles.push({ element: circle, x, y, size, speedX: Math.random() * 0.3 - 0.15, speedY: Math.random() * 0.3 - 0.15 });
-    }
-    
-    // Animation loop
-    let animationId: number;
-    
-    const animate = () => {
-      particles.forEach(particle => {
-        // Update position
-        particle.x += particle.speedX;
-        particle.y += particle.speedY;
-        
-        // Boundary check
-        if (particle.x < 0 || particle.x > width) particle.speedX *= -1;
-        if (particle.y < 0 || particle.y > height) particle.speedY *= -1;
-        
-        // Update element
-        particle.element.setAttribute('cx', particle.x.toString());
-        particle.element.setAttribute('cy', particle.y.toString());
-      });
-      
-      animationId = requestAnimationFrame(animate);
+    // Set canvas dimensions
+    const resize = () => {
+      if (!canvas) return;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
     
-    animate();
+    window.addEventListener("resize", resize);
+    resize();
     
-    return () => {
-      cancelAnimationFrame(animationId);
-      particles.forEach(particle => {
-        if (particle.element.parentNode) {
-          particle.element.parentNode.removeChild(particle.element);
+    // Define cryptic symbols
+    const symbols = "⌘⌥⌦⎋⌬⏣⏢⏥⌓⌔⌖⌗⏧⌄⌂⌁⌀⎔⎕⏨⏩⏪⏫⏬⏭⏮";
+    
+    // Configure columns
+    const fontSize = 14;
+    const columns = Math.floor(canvas.width / fontSize);
+    
+    // Initialize drops array
+    const drops: number[] = Array(columns).fill(0);
+    
+    // Animation function
+    function draw() {
+      if (!ctx || !canvas) return;
+      
+      // Semi-transparent black background for trail effect
+      ctx.fillStyle = "rgba(15, 16, 26, 0.05)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Set text style
+      ctx.fillStyle = "#8b5cf6";
+      ctx.font = `${fontSize}px monospace`;
+      ctx.textAlign = "center";
+      
+      // Loop through drops
+      for (let i = 0; i < drops.length; i++) {
+        // Get random symbol
+        const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+        
+        // Draw symbol
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        
+        // Set varying opacity for more depth
+        ctx.globalAlpha = Math.random() * 0.5 + 0.2;
+        
+        // Random subtle color variations
+        const hue = Math.random() * 20 + 270; // Purple base
+        ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${ctx.globalAlpha})`;
+        
+        // Draw the symbol
+        ctx.fillText(symbol, x, y);
+        
+        // Reset when hitting bottom or randomly
+        if (y > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
         }
-      });
+        
+        // Increment y coordinate
+        drops[i]++;
+      }
+      
+      // Reset opacity
+      ctx.globalAlpha = 1;
+      
+      // Schedule next frame
+      requestAnimationFrame(draw);
+    }
+    
+    // Start animation
+    const animationId = requestAnimationFrame(draw);
+    
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationId);
     };
   }, []);
   
   return (
-    <svg 
-      ref={svgRef}
-      className="absolute inset-0 w-full h-full z-0"
-      xmlns="http://www.w3.org/2000/svg"
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 pointer-events-none z-[-1]"
+      aria-hidden="true"
     />
   );
-}
+} 

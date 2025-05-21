@@ -40,8 +40,8 @@ export type Image = typeof images.$inferSelect;
 export const generateImageSchema = z.object({
   prompt: z.string().min(1).max(4000),
   size: z.enum(["1024x1024", "1024x1792", "1792x1024"]).default("1024x1024"),
-  quality: z.enum(["standard", "hd"]).default("standard"),
-  style: z.enum(["vivid", "natural"]).default("vivid"),
+  quality: z.enum(["standard", "hd"]).default("standard").optional(),
+  style: z.enum(["vivid", "natural"]).default("vivid").optional(),
 });
 
 export type GenerateImageParams = z.infer<typeof generateImageSchema>;

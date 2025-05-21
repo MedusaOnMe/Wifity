@@ -7,9 +7,9 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <Link href="/" className="flex items-center space-x-2 mb-4 md:mb-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center">
-              <i className="ri-brain-line text-sm"></i>
+              <i className="ri-image-line text-sm"></i>
             </div>
-            <span className="font-display font-bold">NeuralCanvas<span className="text-[#06B6D4]">AI</span></span>
+            <span className="font-display font-bold">Meme<span className="text-[#06B6D4]">X</span></span>
           </Link>
           
           <div className="flex space-x-4 mb-4 md:mb-0">
@@ -32,8 +32,8 @@ export default function Footer() {
         </div>
         
         <div className="text-center text-gray-500 text-xs mt-6">
-          <p>© {new Date().getFullYear()} NeuralCanvasAI. All rights reserved. Not affiliated with OpenAI.</p>
-          <p className="mt-1">API integration uses your own API keys and follows OpenAI's usage policies.</p>
+          <p>© {new Date().getFullYear()} MemeX. All rights reserved.</p>
+          <p className="mt-1">Transform your images and memes with AI-powered editing.</p>
         </div>
       </div>
     </footer>

@@ -61,18 +61,24 @@ export default function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProp
             <nav className="flex flex-col space-y-4">
               <Link href="/">
                 <a className={`py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors ${location === '/' ? 'bg-[#334155]/70 text-white' : ''}`}>
-                  Home
+                  Create
                 </a>
               </Link>
               <Link href="/gallery">
                 <a className={`py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors ${location === '/gallery' ? 'bg-[#334155]/70 text-white' : ''}`}>
-                  Gallery
+                  Explore
                 </a>
               </Link>
-              <a href="#" className="py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors">Models</a>
-              <a href="#" className="py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors">How It Works</a>
-              <a href="#" className="py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors">History</a>
-              <a href="#" className="py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors">Account</a>
+              <Link href="/about">
+                <a className={`py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors ${location === '/about' ? 'bg-[#334155]/70 text-white' : ''}`}>
+                  About
+                </a>
+              </Link>
+              <Link href="/trending">
+                <a className={`py-2 px-4 rounded-lg hover:bg-[#334155] transition-colors ${location === '/trending' ? 'bg-[#334155]/70 text-white' : ''}`}>
+                  Trending
+                </a>
+              </Link>
             </nav>
           </motion.div>
         </div>

@@ -53,7 +53,7 @@ export default function GallerySection() {
                   </span>
                   <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
-                      onClick={() => downloadImage(image.url, `neuralcanvas-${image.id}`)}
+                      onClick={() => downloadImage(image.url, `memex-${image.id}`)}
                       className="p-1.5 rounded-lg bg-[#334155] hover:bg-[#475569] transition-colors"
                     >
                       <i className="ri-download-line text-sm"></i>

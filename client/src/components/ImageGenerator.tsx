@@ -1,394 +1,677 @@
-import { useState, ChangeEvent, FormEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useState, useRef, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { downloadImage } from "@/lib/image-utils";
+import { GenerateImageParams } from "@shared/schema";
 
-const SAMPLE_PROMPTS = [
-  "Cyberpunk City",
-  "Ethereal Fantasy",
-  "Sci-Fi Portrait",
-  "Abstract Neon"
+// Define style themes with their descriptions
+const styleThemes = [
+  { id: "none", name: "None", description: "No specific theme applied" },
+  { id: "ghibli", name: "Studio Ghibli", description: "Animated style inspired by Studio Ghibli films" },
+  { id: "minecraft", name: "Minecraft", description: "Blocky pixelated style like Minecraft" },
+  { id: "pixar", name: "Pixar", description: "3D animated style similar to Pixar films" },
+  { id: "cyberpunk", name: "Cyberpunk", description: "Futuristic cyberpunk aesthetic" },
+  { id: "vaporwave", name: "Vaporwave", description: "Retro-futuristic 80s/90s aesthetic" },
+  { id: "renaissance", name: "Renaissance", description: "Classical painting style" },
 ];
 
 export default function ImageGenerator() {
-  const [prompt, setPrompt] = useState("A digital art masterpiece showing a futuristic AI brain connecting with human creativity, vibrant colors, intricate details, cyberpunk style with neon accents");
-  const [size, setSize] = useState("1024x1024");
-  const [quality, setQuality] = useState("standard");
-  const [style, setStyle] = useState<"vivid" | "natural">("vivid");
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"generate" | "edit">("generate");
+  const [prompt, setPrompt] = useState("");
+  const [size, setSize] = useState<GenerateImageParams["size"]>("1024x1024");
+  const [quality, setQuality] = useState<GenerateImageParams["quality"]>("standard");
+  const [style, setStyle] = useState<GenerateImageParams["style"]>("vivid");
+  const [styleTheme, setStyleTheme] = useState("none");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [maskStrength, setMaskStrength] = useState<number>(90);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  // Cleanup function for when component unmounts or when preview changes
+  useEffect(() => {
+    // Return cleanup function
+    return () => {
+      if (imagePreview) {
+        console.log("Cleaning up image preview URL on unmount");
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, []);
   
-  const { mutate, isPending, isError, error } = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/images/generate", {
-        prompt,
-        size,
-        quality,
-        style
+  // Reset form when changing tabs
+  useEffect(() => {
+    // Reset state when changing tabs to prevent stale data
+    setPrompt("");
+    if (imageFile && imagePreview) {
+      console.log("Cleaning up image resources when changing tabs");
+      URL.revokeObjectURL(imagePreview);
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  }, [activeTab]);
+  
+  // Generation mutation
+  const generateMutation = useMutation({
+    mutationFn: async (data: GenerateImageParams) => {
+      // Apply style theme to prompt if selected
+      if (styleTheme !== "none") {
+        const theme = styleThemes.find(t => t.id === styleTheme);
+        data.prompt = `${data.prompt} (in the style of ${theme?.name})`;
+      }
+      
+      const response = await fetch("/api/images/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to generate image");
+      }
+      
       return response.json();
     },
-    onSuccess: (data) => {
-      setGeneratedImageUrl(data.url);
-      queryClient.invalidateQueries({ queryKey: ['/api/images'] });
-      toast({
-        title: "Image generated successfully!",
-        description: "Your AI creation is ready to view and download."
+  });
+  
+  // Image edit mutation
+  const editImageMutation = useMutation({
+    mutationFn: async () => {
+      if (!imageFile || !prompt) {
+        throw new Error("Image and prompt are required");
+      }
+      
+      console.log(`Processing image: ${imageFile.name}, Size: ${imageFile.size} bytes, Type: ${imageFile.type}`);
+      
+      // Check file type early
+      if (!imageFile.type.startsWith('image/')) {
+        throw new Error("File must be an image");
+      }
+      
+      // Create a copy of the file to ensure it doesn't get revoked or modified
+      // This helps prevent issues with the blob URL being invalidated
+      const fileCopy = new File([imageFile], imageFile.name, { 
+        type: imageFile.type,
+        lastModified: imageFile.lastModified 
       });
-    },
-    onError: (err: any) => {
-      toast({
-        title: "Generation failed",
-        description: err.message || "There was an error generating your image. Please try again.",
-        variant: "destructive"
-      });
+      
+      const formData = new FormData();
+      formData.append("image", fileCopy);
+      formData.append("prompt", prompt);
+      formData.append("mask_strength", maskStrength.toString());
+      
+      if (styleTheme !== "none") {
+        const theme = styleThemes.find(t => t.id === styleTheme);
+        const styledPrompt = `${prompt} (in the style of ${theme?.name})`;
+        formData.set("prompt", styledPrompt);
+      }
+      
+      try {
+        // Step 1: Create job and get job ID
+        const jobResponse = await fetch("/api/images/edit/create-job", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!jobResponse.ok) {
+          throw new Error("Failed to create image edit job");
+        }
+        
+        const jobData = await jobResponse.json();
+        const jobId = jobData.jobId;
+        
+        // Step 2: Start polling for job completion
+        const maxPollTime = 5 * 60 * 1000; // 5 minutes
+        const pollInterval = 2000; // 2 seconds
+        const startTime = Date.now();
+        
+        // Helper function to poll job status
+        const pollJobStatus = async (): Promise<any> => {
+          // Check if we've exceeded max poll time
+          if (Date.now() - startTime > maxPollTime) {
+            throw new Error("Image processing timed out after 5 minutes. The server may still be processing your image.");
+          }
+          
+          // Fetch job status
+          const statusResponse = await fetch(`/api/jobs/${jobId}`);
+          
+          if (!statusResponse.ok) {
+            throw new Error("Failed to check job status");
+          }
+          
+          const statusData = await statusResponse.json();
+          
+          // Check job status
+          if (statusData.status === 'completed') {
+            return statusData.result;
+          } else if (statusData.status === 'failed') {
+            throw new Error("Image processing failed");
+          } else {
+            // Job still in progress, wait and poll again
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            return pollJobStatus();
+          }
+        };
+        
+        // Start polling
+        return await pollJobStatus();
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+        
+        if (error instanceof Error) {
+          throw error;
+        } else {
+          throw new Error("Unknown error occurred while editing image");
+        }
+      }
     }
   });
   
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) {
-      toast({
-        title: "Empty prompt",
-        description: "Please enter a description for your image.",
-        variant: "destructive"
-      });
-      return;
-    }
-    mutate();
-  };
-  
-  const handlePromptChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
-    setPrompt(e.target.value);
-  };
-  
-  const handleSamplePromptClick = (samplePrompt: string) => {
-    setPrompt(samplePrompt);
-  };
-  
-  const handleDownload = () => {
-    if (generatedImageUrl) {
-      downloadImage(generatedImageUrl, `neuralcanvas-${Date.now()}`);
+    if (activeTab === "generate") {
+      generateMutation.mutate({ prompt, size, quality, style });
+    } else {
+      editImageMutation.mutate();
     }
   };
   
-  return (
-    <section className="mb-16">
-      <Card className="glass rounded-3xl border border-white/5 overflow-hidden glow-border relative backdrop-blur-sm">
-        {/* Neural circuit design overlay */}
-        <div className="absolute inset-0 overflow-hidden opacity-10 pointer-events-none">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="circuit-board" width="120" height="120" patternUnits="userSpaceOnUse">
-              <path d="M20 60 L40 60 L40 30 L60 30 L60 60 L100 60" fill="none" stroke="rgba(147, 51, 234, 0.5)" strokeWidth="1"/>
-              <path d="M60 60 L60 100 L30 100 L30 80" fill="none" stroke="rgba(6, 182, 212, 0.5)" strokeWidth="1"/>
-              <circle cx="20" cy="60" r="3" fill="rgba(147, 51, 234, 0.5)"/>
-              <circle cx="60" cy="30" r="3" fill="rgba(6, 182, 212, 0.5)"/>
-              <circle cx="60" cy="60" r="3" fill="rgba(236, 72, 153, 0.5)"/>
-              <circle cx="100" cy="60" r="3" fill="rgba(147, 51, 234, 0.5)"/>
-              <circle cx="30" cy="100" r="3" fill="rgba(6, 182, 212, 0.5)"/>
-              <circle cx="30" cy="80" r="3" fill="rgba(147, 51, 234, 0.5)"/>
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#circuit-board)"/>
-          </svg>
-        </div>
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    
+    // Clean up previous preview if it exists
+    if (imagePreview) {
+      console.log("Cleaning up previous image preview");
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    
+    if (file) {
+      // Validate image before proceeding
+      if (!file.type.startsWith('image/')) {
+        console.error(`Error: File type ${file.type} is not a supported image format`);
+        return;
+      }
+      
+      // Check file size - OpenAI has a 4MB limit
+      const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
+      if (file.size > maxSizeInBytes) {
+        console.error(`Error: Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`);
+        return;
+      }
+      
+      // Additional check for dimensions through loading the image
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      console.log("Created blob URL:", objectUrl);
+      
+      img.onload = () => {
+        console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
+        // Don't revoke the objectUrl here as it's needed for the preview
+        const maxDimension = 4000; // OpenAI likely has dimension limits
         
-        <CardContent className="p-0">
-          <div className="p-6 md:p-8 relative">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center mr-3">
-                  <i className="ri-brush-3-line text-lg"></i>
-                </div>
-                <h2 className="font-display font-bold text-2xl">Neural <span className="text-gradient">Image Creator</span></h2>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-400">Engine:</span>
-                <select className="glass py-1 px-3 rounded-full text-sm border border-white/5 focus:outline-none focus:ring-2 focus:ring-[#9333EA] bg-transparent">
-                  <option>DALL-E 3</option>
-                  <option disabled>Stable Diffusion</option>
-                  <option disabled>Midjourney Style</option>
-                </select>
-              </div>
-            </div>
+        if (img.width > maxDimension || img.height > maxDimension) {
+          console.log("Warning: Image dimensions are quite large. If you encounter errors, try resizing to smaller dimensions.");
+        }
+        
+        // Set image file if all checks pass
+        setImageFile(file);
+        console.log(`File selected: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Dimensions: ${img.width}x${img.height}, Type: ${file.type}`);
+        setImagePreview(objectUrl);
+      };
+      
+      img.onerror = () => {
+        console.error("Failed to load image from blob URL:", objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        console.error("Error: Unable to load image. The file may be corrupted or not a valid image.");
+      };
+      
+      img.src = objectUrl;
+    } else {
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+  
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0] || null;
+    
+    // Clean up previous preview if it exists
+    if (imagePreview) {
+      console.log("Cleaning up previous image preview (drop)");
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    
+    if (file) {
+      // Validate image before proceeding
+      if (!file.type.startsWith('image/')) {
+        console.error(`Error: File type ${file.type} is not a supported image format`);
+        return;
+      }
+      
+      // Check file size - OpenAI has a 4MB limit
+      const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
+      if (file.size > maxSizeInBytes) {
+        console.error(`Error: Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`);
+        return;
+      }
+      
+      // Additional check for dimensions through loading the image
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      console.log("Created blob URL (drop):", objectUrl);
+      
+      img.onload = () => {
+        console.log("Image loaded successfully (drop), dimensions:", img.width, "x", img.height);
+        // Don't revoke the objectUrl here as it's needed for the preview
+        const maxDimension = 4000; // OpenAI likely has dimension limits
+        
+        if (img.width > maxDimension || img.height > maxDimension) {
+          console.log("Warning: Image dimensions are quite large. If you encounter errors, try resizing to smaller dimensions.");
+        }
+        
+        // Set image file if all checks pass
+        setImageFile(file);
+        console.log(`File dropped: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Dimensions: ${img.width}x${img.height}, Type: ${file.type}`);
+        setImagePreview(objectUrl);
+      };
+      
+      img.onerror = () => {
+        console.error("Failed to load image from blob URL (drop):", objectUrl);
+        URL.revokeObjectURL(objectUrl);
+        console.error("Error: Unable to load image. The file may be corrupted or not a valid image.");
+      };
+      
+      img.src = objectUrl;
+    } else {
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+  
+  // Active mutation based on current tab
+  const activeMutation = activeTab === "generate" ? generateMutation : editImageMutation;
+
+  return (
+    <section id="image-generator" className="py-16">
+      <div className="container px-4 mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Form Section */}
+          <div className="w-full lg:w-1/2">
+            <h2 className="font-display text-2xl md:text-3xl font-bold mb-6">
+              <span className="cryptic-symbols mr-2 opacity-50"></span>
+              Manifest Your <span className="text-gradient">Vision</span>
+            </h2>
             
-            <form onSubmit={handleSubmit}>
-              <div className="mb-6">
-                <div className="relative">
-                  <div className="glass relative rounded-xl overflow-hidden transition-all duration-300 focus-within:ring-2 focus-within:ring-[#06B6D4] border border-white/10">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#9333EA] via-[#06B6D4] to-[#EC4899] opacity-70"></div>
-                    <textarea 
-                      value={prompt}
-                      onChange={handlePromptChange}
-                      placeholder="Describe the image you want to create... Be detailed and specific for best results."
-                      className="w-full p-4 pr-12 h-32 md:h-40 bg-transparent text-gray-100 focus:outline-none resize-none font-medium"
-                    />
-                    <div className="absolute bottom-3 right-3 flex space-x-2">
-                      <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors group">
-                        <i className="ri-magic-line text-[#9333EA] group-hover:text-[#b366f3] transition-colors"></i>
-                      </button>
-                      <button type="button" className="p-2 rounded-lg bg-[#1E293B]/50 hover:bg-[#334155] transition-colors group">
-                        <i className="ri-terminal-line text-[#06B6D4] group-hover:text-[#25d8f5] transition-colors"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            <Card className="glass mb-6">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "generate" | "edit")}>
+                <TabsList className="w-full grid grid-cols-2 mb-4">
+                  <TabsTrigger value="generate">Generate</TabsTrigger>
+                  <TabsTrigger value="edit">Edit Image</TabsTrigger>
+                </TabsList>
                 
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {SAMPLE_PROMPTS.map((samplePrompt, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleSamplePromptClick(samplePrompt)}
-                      className="glass px-3 py-1 rounded-full text-xs bg-[#334155]/30 cursor-pointer hover:bg-[#334155]/50 hover:text-[#06B6D4] transition-colors"
+                <TabsContent value="generate" className="p-6">
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-6">
+                      <Label htmlFor="prompt" className="mb-2 block">
+                        Describe your vision <span className="text-muted-foreground">(be detailed)</span>
+                      </Label>
+                      <Textarea
+                        id="prompt"
+                        placeholder="A mystical gateway between worlds, ornate ancient symbols..."
+                        className="min-h-32 bg-background/50"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="mb-6">
+                      <Label htmlFor="style-theme" className="mb-2 block">
+                        Style Theme
+                      </Label>
+                      <Select value={styleTheme} onValueChange={setStyleTheme}>
+                        <SelectTrigger id="style-theme">
+                          <SelectValue placeholder="Select a style theme" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {styleThemes.map((theme) => (
+                            <SelectItem key={theme.id} value={theme.id}>
+                              {theme.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {styleTheme !== "none" && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {styleThemes.find(t => t.id === styleTheme)?.description}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="flex flex-col md:flex-row gap-6 mb-6">
+                      <div className="flex-1">
+                        <Label className="mb-2 block">Dimensions</Label>
+                        <RadioGroup 
+                          value={size} 
+                          onValueChange={(value) => setSize(value as GenerateImageParams["size"])}
+                          className="flex flex-col gap-3"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1024x1024" id="size-square" />
+                            <Label htmlFor="size-square" className="font-normal cursor-pointer">
+                              Square (1:1)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1024x1792" id="size-portrait" />
+                            <Label htmlFor="size-portrait" className="font-normal cursor-pointer">
+                              Portrait (9:16)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="1792x1024" id="size-landscape" />
+                            <Label htmlFor="size-landscape" className="font-normal cursor-pointer">
+                              Landscape (16:9)
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <Label className="mb-2 block">Quality</Label>
+                        <RadioGroup 
+                          value={quality} 
+                          onValueChange={(value) => setQuality(value as GenerateImageParams["quality"])}
+                          className="flex flex-col gap-3"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="standard" id="quality-standard" />
+                            <Label htmlFor="quality-standard" className="font-normal cursor-pointer">
+                              Standard
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="hd" id="quality-hd" />
+                            <Label htmlFor="quality-hd" className="font-normal cursor-pointer">
+                              High Definition
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                        
+                        <Label className="mt-4 mb-2 block">Style</Label>
+                        <RadioGroup 
+                          value={style} 
+                          onValueChange={(value) => setStyle(value as GenerateImageParams["style"])}
+                          className="flex flex-col gap-3"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="vivid" id="style-vivid" />
+                            <Label htmlFor="style-vivid" className="font-normal cursor-pointer">
+                              Vivid
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="natural" id="style-natural" />
+                            <Label htmlFor="style-natural" className="font-normal cursor-pointer">
+                              Natural
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#c026d3] hover:opacity-90 transition-opacity"
+                      disabled={activeMutation.isPending || !prompt.trim()}
                     >
-                      {samplePrompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#9333EA]/30 transition-colors">
-                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#9333EA] group-hover:w-full transition-all duration-300"></div>
-                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
-                      <i className="ri-aspect-ratio-line mr-1 text-[#9333EA]"></i>
-                      Dimensions
-                    </label>
-                    <select 
-                      value={size}
-                      onChange={(e) => setSize(e.target.value)}
-                      className="bg-transparent w-full focus:outline-none text-sm"
-                    >
-                      <option value="1024x1024">1024 × 1024 (Square)</option>
-                      <option value="1024x1792">1024 × 1792 (Portrait)</option>
-                      <option value="1792x1024">1792 × 1024 (Landscape)</option>
-                    </select>
-                  </div>
-                  
-                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#06B6D4]/30 transition-colors">
-                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#06B6D4] group-hover:w-full transition-all duration-300"></div>
-                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
-                      <i className="ri-hd-line mr-1 text-[#06B6D4]"></i>
-                      Resolution
-                    </label>
-                    <select 
-                      value={quality}
-                      onChange={(e) => setQuality(e.target.value)}
-                      className="bg-transparent w-full focus:outline-none text-sm"
-                    >
-                      <option value="standard">Standard (Fast)</option>
-                      <option value="hd">HD (Premium)</option>
-                    </select>
-                  </div>
-                  
-                  <div className="glass p-3 rounded-xl border border-white/5 relative overflow-hidden group hover:border-[#EC4899]/30 transition-colors col-span-2 md:col-span-1">
-                    <div className="absolute top-0 left-0 w-0 h-1 bg-[#EC4899] group-hover:w-full transition-all duration-300"></div>
-                    <label className="text-xs text-gray-400 block mb-1 flex items-center">
-                      <i className="ri-palette-line mr-1 text-[#EC4899]"></i>
-                      Rendering Style
-                    </label>
-                    <select 
-                      value={style}
-                      onChange={(e) => {
-                        if (e.target.value === "vivid" || e.target.value === "natural") {
-                          setStyle(e.target.value);
-                        }
-                      }}
-                      className="bg-transparent w-full focus:outline-none text-sm"
-                    >
-                      <option value="vivid">Vivid (Enhanced Colors)</option>
-                      <option value="natural">Natural (Realistic Look)</option>
-                    </select>
-                  </div>
-                </div>
+                      {activeMutation.isPending ? (
+                        <>
+                          <span className="animate-pulse">Manifesting...</span>
+                          <span className="cryptic-symbols ml-2 opacity-50"></span>
+                        </>
+                      ) : "Manifest Vision"}
+                    </Button>
+                  </form>
+                </TabsContent>
                 
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className="relative overflow-hidden bg-gradient-to-r from-[#9333EA] to-[#06B6D4] hover:opacity-90 transition-all py-3 px-6 rounded-xl font-medium flex items-center justify-center gap-2 text-white h-12 shadow-lg shadow-[#9333EA]/20 group"
-                >
-                  <span className="absolute inset-0 bg-gradient-to-r from-[#06B6D4] to-[#9333EA] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></span>
-                  
-                  {isPending ? (
-                    <div className="flex items-center justify-center gap-2 relative z-10">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Creating Masterpiece...</span>
+                <TabsContent value="edit" className="p-6">
+                  <form onSubmit={handleSubmit}>
+                    <div className="mb-6">
+                      <Label htmlFor="upload-image" className="mb-2 block">
+                        Upload Image to Transform
+                      </Label>
+                      <div 
+                        className="border-2 border-dashed border-border rounded-lg p-6 text-center"
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                      >
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img 
+                              src={imagePreview} 
+                              alt="Source" 
+                              className="max-h-48 mx-auto rounded-md"
+                              onError={(e) => {
+                                console.error("Image preview failed to load");
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null; // Prevent infinite loop
+                                target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTk5OTkiPkltYWdlIGVycm9yPC90ZXh0Pjwvc3ZnPg==";
+                              }}
+                              onLoad={() => {
+                                console.log("Image preview loaded successfully");
+                              }}
+                            />
+                            <button 
+                              type="button"
+                              className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
+                              onClick={() => {
+                                console.log("Cleaning up image preview");
+                                if (imagePreview) {
+                                  // Clean up the blob URL when removing the image
+                                  URL.revokeObjectURL(imagePreview);
+                                }
+                                setImageFile(null);
+                                setImagePreview(null);
+                                if (fileInputRef.current) fileInputRef.current.value = '';
+                              }}
+                            >
+                              <i className="ri-close-line text-white"></i>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <i className="ri-upload-cloud-line text-3xl text-muted-foreground mb-2 block mx-auto"></i>
+                            <p className="text-muted-foreground mb-2">Drag and drop an image, or click to upload</p>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              Select Image
+                            </Button>
+                          </>
+                        )}
+                        <input 
+                          ref={fileInputRef}
+                          id="upload-image" 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleFileChange}
+                        />
+                      </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 relative z-10">
-                      <i className="ri-ai-generate text-lg"></i>
-                      <span>Generate Image</span>
+                    
+                    <div className="mb-6">
+                      <Label htmlFor="edit-prompt" className="mb-2 block">
+                        Describe how to transform the image
+                      </Label>
+                      <Textarea
+                        id="edit-prompt"
+                        placeholder="Make the image look like winter, add snow falling"
+                        className="min-h-24 bg-background/50"
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        required
+                      />
                     </div>
-                  )}
-                </Button>
-              </div>
-            </form>
+                    
+                    <div className="mb-6">
+                      <Label htmlFor="style-theme-edit" className="mb-2 block">
+                        Style Theme
+                      </Label>
+                      <Select value={styleTheme} onValueChange={setStyleTheme}>
+                        <SelectTrigger id="style-theme-edit">
+                          <SelectValue placeholder="Select a style theme" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {styleThemes.map((theme) => (
+                            <SelectItem key={theme.id} value={theme.id}>
+                              {theme.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <div className="flex justify-between mb-2">
+                        <Label htmlFor="mask-strength">Transformation Strength: {maskStrength}%</Label>
+                      </div>
+                      <Slider
+                        id="mask-strength"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={[maskStrength]}
+                        onValueChange={(value) => setMaskStrength(value[0])}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Higher values apply more of your prompt to the image
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#c026d3] hover:opacity-90 transition-opacity"
+                      disabled={activeMutation.isPending || !prompt.trim() || !imageFile}
+                    >
+                      {activeMutation.isPending ? (
+                        <>
+                          <span className="animate-pulse">Transforming...</span>
+                          <span className="cryptic-symbols ml-2 opacity-50"></span>
+                        </>
+                      ) : "Transform Image"}
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            </Card>
           </div>
           
-          <div className="relative">
-            {isPending && (
-              <div className="particles bg-[#0F172A]/80 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl backdrop-blur-sm border border-white/5 relative overflow-hidden">
-                {/* Neural network animation effect */}
-                <div className="absolute inset-0 overflow-hidden opacity-30">
-                  <svg width="100%" height="100%" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
-                    <g fill="none" stroke="rgba(147, 51, 234, 0.5)" strokeWidth="1">
-                      <path d="M0,100 Q400,0 800,100" className="animate-pulse" />
-                      <path d="M0,200 Q400,100 800,200" className="animate-pulse" style={{ animationDelay: '0.5s' }} />
-                      <path d="M0,300 Q400,200 800,300" className="animate-pulse" style={{ animationDelay: '1s' }} />
-                    </g>
-                  </svg>
-                </div>
-                
-                <div className="w-16 h-16 relative mb-8">
-                  <div className="absolute inset-0 rounded-full border-4 border-[#9333EA] border-t-transparent animate-spin"></div>
-                  <div className="absolute inset-2 rounded-full border-4 border-[#06B6D4] border-b-transparent animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-                  <div className="absolute inset-4 rounded-full border-4 border-[#EC4899] border-l-transparent animate-spin" style={{ animationDuration: '2s' }}></div>
-                </div>
-
-                <h3 className="font-display text-2xl mb-2 text-gradient">Creating Neural Masterpiece</h3>
-                <p className="text-gray-300 text-center max-w-md">Our advanced AI is processing your prompt and generating a unique visual creation. This artistic process typically takes 10-15 seconds...</p>
-                
-                <div className="mt-8 w-full max-w-md">
-                  <div className="flex justify-between text-xs text-gray-400 mb-1">
-                    <span className="flex items-center"><i className="ri-cpu-line mr-1"></i> Neural Processing</span>
-                    <span className="flex items-center"><i className="ri-flashlight-line mr-1"></i> Rendering in progress</span>
+          {/* Result Section */}
+          <div className="w-full lg:w-1/2">
+            <h2 className="font-display text-2xl md:text-3xl font-bold mb-6">
+              <span className="cryptic-symbols mr-2 opacity-50"></span>
+              Revealed <span className="text-gradient">Vision</span>
+            </h2>
+            
+            <Card className="glass h-[30rem] flex items-center justify-center overflow-hidden relative">
+              <CardContent className="p-0 w-full h-full flex items-center justify-center">
+                {activeMutation.isPending ? (
+                  <div className="text-center p-8">
+                    <div className="w-24 h-24 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-muted-foreground">Creating your masterpiece...</p>
                   </div>
-                  <div className="w-full h-2 rounded-full overflow-hidden bg-gradient-to-r from-[#1E293B]/50 to-[#1E293B]/50 backdrop-blur-sm p-0.5">
-                    <div className="relative h-full w-full rounded-full overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#9333EA] via-[#06B6D4] to-[#EC4899]"></div>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                      <div className="absolute inset-y-0 left-0 bg-[#0F172A] right-1/4 animate-[progressAnimation_2s_ease-in-out_infinite]"></div>
+                ) : activeMutation.isError ? (
+                  <div className="text-center p-8 max-w-md mx-auto">
+                    <i className="ri-error-warning-line text-5xl text-red-500 mb-4 block"></i>
+                    <p className="text-red-500 mb-2 font-medium">Something went wrong</p>
+                    <p className="text-muted-foreground text-sm">
+                      {activeMutation.error instanceof Error ? activeMutation.error.message : "Unknown error"}
+                    </p>
+                  </div>
+                ) : (generateMutation.data || editImageMutation.data) ? (
+                  <motion.div 
+                    className="relative w-full h-full bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8 }}
+                  >
+                    <img 
+                      src={generateMutation.data?.url || editImageMutation.data?.url} 
+                      alt={generateMutation.data?.prompt || "Edited image"}
+                      className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+                      onError={(e) => {
+                        console.error("Result image failed to load");
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null; // Prevent infinite loop
+                        target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTk5OTkiPkltYWdlIGVycm9yPC90ZXh0Pjwvc3ZnPg==";
+                      }}
+                    />
+                    <div className="absolute bottom-4 right-4 flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="bg-[#334155] hover:bg-[#475569] text-white"
+                        onClick={() => downloadImage(
+                          generateMutation.data?.url || editImageMutation.data?.url, 
+                          `memex-${generateMutation.data?.id || editImageMutation.data?.id || 'edit'}`
+                        )}
+                      >
+                        <i className="ri-download-line mr-1"></i> Save
+                      </Button>
+                      <Button 
+                        size="sm"
+                        className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
+                        onClick={() => {
+                          const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
+                          const promptText = generateMutation.data?.prompt || prompt;
+                          const tweetText = `Check out this image I created with MemeX: "${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}"`;
+                          const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(window.location.href)}`;
+                          window.open(tweetUrl, '_blank', 'noopener,noreferrer,width=550,height=420');
+                        }}
+                      >
+                        <i className="ri-twitter-x-fill mr-1"></i> Share
+                      </Button>
                     </div>
+                  </motion.div>
+                ) : (
+                  <div className="text-center p-8 max-w-md mx-auto">
+                    <i className="ri-image-line text-5xl text-muted-foreground/30 mb-4 block"></i>
+                    <p className="text-muted-foreground">
+                      Your meme masterpiece awaits...
+                    </p>
+                    <p className="text-sm text-muted-foreground/70 mt-2">
+                      {activeTab === "generate" 
+                        ? "Describe what you want to create in detail for best results."
+                        : "Upload an image and describe how you want to transform it."
+                      }
+                    </p>
                   </div>
-                </div>
-              </div>
-            )}
-            
-            {!isPending && generatedImageUrl && (
-              <div className="relative rounded-xl overflow-hidden group">
-                {/* Decorative frame */}
-                <div className="absolute inset-0 p-0.5 bg-gradient-to-br from-[#9333EA] via-[#06B6D4] to-[#EC4899] opacity-70 z-10"></div>
-                
-                <img 
-                  src={generatedImageUrl} 
-                  alt="AI generated image based on your prompt" 
-                  className="w-full h-auto object-cover relative z-0"
-                />
-                
-                <div className="absolute top-4 left-4 z-20">
-                  <span className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
-                    <i className="ri-cpu-line text-[#9333EA] mr-1"></i>
-                    <span>DALL-E 3</span>
-                  </span>
-                </div>
-                
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0F172A]/95 to-transparent p-6 flex justify-between items-center z-20">
-                  <div className="max-w-md">
-                    <p className="text-sm text-gray-300 line-clamp-1 mb-1">{prompt.slice(0, 100)}{prompt.length > 100 ? '...' : ''}</p>
-                    <div className="flex items-center text-xs text-gray-400">
-                      <span className="mr-4 flex items-center"><i className="ri-aspect-ratio-line mr-1"></i> {size}</span>
-                      <span className="mr-4 flex items-center"><i className="ri-palette-line mr-1"></i> {style}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={handleDownload}
-                      className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1"
-                    >
-                      <i className="ri-download-line text-[#06B6D4]"></i>
-                      <span className="text-xs hidden group-hover:inline-block transition-all">Save</span>
-                    </button>
-                    <button className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1">
-                      <i className="ri-share-line text-[#EC4899]"></i>
-                      <span className="text-xs hidden group-hover:inline-block transition-all">Share</span>
-                    </button>
-                    <button className="glass p-2 rounded-lg hover:bg-[#334155]/80 transition-colors group-hover:scale-105 duration-200 flex items-center space-x-1">
-                      <i className="ri-refresh-line text-[#9333EA]"></i>
-                      <span className="text-xs hidden group-hover:inline-block transition-all">Retry</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {!isPending && !generatedImageUrl && !isError && (
-              <div className="bg-[#1E293B]/30 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl border border-white/5 relative overflow-hidden">
-                {/* Background decorative elements */}
-                <div className="absolute inset-0 overflow-hidden opacity-10">
-                  <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-                    <defs>
-                      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(147, 51, 234, 0.3)" strokeWidth="0.5" />
-                      </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                    <circle cx="400" cy="200" r="150" fill="none" stroke="rgba(6, 182, 212, 0.2)" strokeWidth="1" strokeDasharray="5,5" />
-                    <circle cx="400" cy="200" r="100" fill="none" stroke="rgba(236, 72, 153, 0.2)" strokeWidth="1" strokeDasharray="3,3" />
-                  </svg>
-                </div>
-                
-                <div className="relative w-28 h-28 mb-8">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#9333EA]/30 via-[#06B6D4]/30 to-[#EC4899]/30 animate-pulse"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <i className="ri-image-add-line text-5xl text-white"></i>
-                  </div>
-                </div>
-                
-                <h3 className="font-display text-2xl mb-3 text-gradient">Unleash AI Creativity</h3>
-                <p className="text-gray-300 text-center max-w-md">Enter a detailed prompt above and watch as advanced neural networks transform your words into stunning visual art</p>
-                
-                <div className="mt-6 flex flex-wrap justify-center gap-3">
-                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
-                    <i className="ri-brush-3-line text-[#9333EA] mr-1"></i>
-                    <span>Artistic Details</span>
-                  </div>
-                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
-                    <i className="ri-landscape-line text-[#06B6D4] mr-1"></i>
-                    <span>Scene Description</span>
-                  </div>
-                  <div className="glass px-3 py-1.5 rounded-full text-xs flex items-center space-x-1 border border-white/10">
-                    <i className="ri-emotion-line text-[#EC4899] mr-1"></i>
-                    <span>Style Keywords</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {isError && (
-              <div className="bg-[#0F172A]/70 min-h-[400px] flex flex-col items-center justify-center p-8 rounded-xl border border-red-500/20 backdrop-blur-sm">
-                <div className="w-24 h-24 relative mb-6">
-                  <div className="absolute inset-0 rounded-full bg-red-500/10 animate-pulse"></div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <i className="ri-error-warning-line text-4xl text-red-500"></i>
-                  </div>
-                </div>
-                
-                <h3 className="font-display text-2xl mb-3 text-red-400">Generation Failed</h3>
-                <p className="text-gray-300 text-center max-w-md">
-                  {typeof error === 'object' && error !== null && 'message' in error
-                    ? String(error.message)
-                    : "There was an issue with your request. This could be due to content policy restrictions or a temporary service issue."}
-                </p>
-                
-                <button 
-                  onClick={handleSubmit}
-                  className="mt-8 px-5 py-2.5 glass bg-red-500/10 hover:bg-red-500/20 transition-colors rounded-xl border border-red-500/30 flex items-center"
-                >
-                  <i className="ri-restart-line mr-2"></i>
-                  Try Again
-                </button>
-              </div>
-            )}
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </section>
   );
-}
+} 
