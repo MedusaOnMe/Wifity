@@ -17,7 +17,7 @@ export default function ImageGenerator() {
   const [prompt, setPrompt] = useState("A digital art masterpiece showing a futuristic AI brain connecting with human creativity, vibrant colors, intricate details, cyberpunk style with neon accents");
   const [size, setSize] = useState("1024x1024");
   const [quality, setQuality] = useState("standard");
-  const [style, setStyle] = useState("vivid");
+  const [style, setStyle] = useState<"vivid" | "natural">("vivid");
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   
   const { toast } = useToast();
@@ -158,12 +158,15 @@ export default function ImageGenerator() {
                     <label className="text-xs text-gray-400 block mb-1">Style</label>
                     <select 
                       value={style}
-                      onChange={(e) => setStyle(e.target.value)}
+                      onChange={(e) => {
+                        if (e.target.value === "vivid" || e.target.value === "natural") {
+                          setStyle(e.target.value);
+                        }
+                      }}
                       className="bg-transparent w-full focus:outline-none text-sm"
                     >
                       <option value="vivid">Vivid</option>
                       <option value="natural">Natural</option>
-                      <option value="cinematic">Cinematic</option>
                     </select>
                   </div>
                 </div>

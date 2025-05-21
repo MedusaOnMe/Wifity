@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Call OpenAI to generate the image
-      const imageUrl = await generateImage(prompt, size, quality, style);
+      const imageUrl = await generateImage(prompt, size, quality, style as "vivid" | "natural");
       
       // Save the image info to storage
       const image = await storage.createImage({
