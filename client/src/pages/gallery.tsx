@@ -1,20 +1,57 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import MobileNavDrawer from "@/components/MobileNavDrawer";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { Card, CardContent } from "@/components/ui/card";
-import { Image } from "@shared/schema";
+import { getAllImagesFromFirebase, onStorageChange } from "@/lib/firebase";
 import { downloadImage } from "@/lib/image-utils";
+
+interface Image {
+  id: string;
+  url: string;
+  prompt: string;
+  timestamp: number;
+  displayTitle?: string;
+}
 
 export default function Gallery() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [images, setImages] = useState<Image[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   
-  const { data: images, isLoading, error } = useQuery({
-    queryKey: ['/api/images'],
-  });
+  // Set up real-time listener for Firebase Storage changes
+  useEffect(() => {
+    setIsLoading(true);
+    
+    // Initial load of images
+    const loadImages = async () => {
+      try {
+        const initialImages = await getAllImagesFromFirebase();
+        setImages(initialImages);
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Failed to load initial images:", err);
+        setError(err instanceof Error ? err : new Error("Unknown error loading images"));
+        setIsLoading(false);
+      }
+    };
+    
+    loadImages();
+    
+    // Set up real-time listener
+    const unsubscribe = onStorageChange((updatedImages) => {
+      setImages(updatedImages);
+      setIsLoading(false);
+    });
+    
+    // Clean up listener on component unmount
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -38,6 +75,7 @@ export default function Gallery() {
             <Card className="glass border-red-500/20">
               <CardContent className="p-6 text-center">
                 <p>Error loading images. Please try again later.</p>
+                <p className="text-xs text-red-400 mt-2">{error.message}</p>
               </CardContent>
             </Card>
           ) : isLoading ? (
@@ -62,14 +100,14 @@ export default function Gallery() {
                     className="w-full h-56 object-cover"
                   />
                   <CardContent className="p-4">
-                    <p className="font-medium line-clamp-2 text-sm">{image.prompt}</p>
+                    <p className="font-medium line-clamp-2 text-sm">{image.displayTitle || image.prompt}</p>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-xs text-gray-400">
-                        {new Date(image.createdAt).toLocaleString()}
+                        {new Date(image.timestamp).toLocaleString()}
                       </span>
                       <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
-                          onClick={() => downloadImage(image.url, `memex-${image.id}`)}
+                          onClick={() => downloadImage(image.url, `memex-${image.id.split('/').pop() || 'image'}`)}
                           className="p-1.5 rounded-lg bg-primary-700 hover:bg-primary-600 transition-colors"
                         >
                           <i className="ri-download-line text-sm"></i>

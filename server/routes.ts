@@ -365,7 +365,7 @@ export async function registerRoutes(app: Application) {
       const { prompt, size, quality, style } = validationResult.data;
       
       // Define model explicitly and log it clearly
-      const modelName = "dall-e-3";
+      const modelName = "gpt-image-1";
       log(`IMPORTANT - Generating image with MODEL: "${modelName}" and prompt: "${prompt.slice(0, 30)}..."`);
       console.log(`MODEL CHECK: Using "${modelName}" for image generation`);
       
@@ -377,13 +377,17 @@ export async function registerRoutes(app: Application) {
         size
       };
       
-      // Only include quality for models that support it
-      if (quality) {
+      // Always use "medium" quality for gpt-image-1
+      if (modelName === "gpt-image-1") {
+        requestParams.quality = "medium";
+      } else if (quality) {
+        // For dall-e models, use the quality value as provided
         requestParams.quality = quality;
       }
       
       // Only include style for models that support it (dall-e-3)
-      if (style) {
+      // gpt-image-1 doesn't support the style parameter
+      if (style && modelName.includes('dall-e')) {
         requestParams.style = style;
       }
       
@@ -637,9 +641,9 @@ export async function registerRoutes(app: Application) {
       status: job.status,
       message: job.status === 'pending' ? 'Job is waiting to be processed' : 'Job is currently processing',
       created: job.created
-    });
-  });
-  
+              });
+            });
+            
   // Legacy endpoint for direct image editing (keeping for compatibility)
   app.post('/api/images/edit', (req, res) => {
     console.log('=== IMAGE EDIT REQUEST RECEIVED (LEGACY ENDPOINT) ===');
@@ -743,7 +747,7 @@ export async function registerRoutes(app: Application) {
         
       } catch (error: any) {
         console.error('Error setting up job:', error);
-        return res.status(500).json({
+        return res.status(500).json({ 
           message: error.message || 'Error processing image'
         });
       }
@@ -751,4 +755,4 @@ export async function registerRoutes(app: Application) {
   });
 
   return server;
-}
+} 

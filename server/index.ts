@@ -61,39 +61,39 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    const server = await registerRoutes(app);
+  const server = await registerRoutes(app);
 
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       // Log the error details for debugging
       console.error('Express error handler caught:', err);
       log(`EXPRESS ERROR: ${err.name}: ${err.message}\n${err.stack || ''}`);
       
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
 
-      res.status(status).json({ message });
+    res.status(status).json({ message });
       // Don't throw the error again, handle it here
       // throw err;  <- Removing this line to prevent crashing
-    });
+  });
 
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      await setupVite(app, server);
-    } else {
-      serveStatic(app);
-    }
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
 
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
       const address = server.address();
       const url = address && typeof address === 'object' ? 
         `http://${address.address === '0.0.0.0' ? 'localhost' : address.address}:${address.port}` :
@@ -102,10 +102,10 @@ app.use((req, res, next) => {
       console.log(`=== SERVER STARTING ===`);
       console.log(`Server listening on ${url}`);
       console.log(`Environment: ${app.get("env")}`);
-      log(`serving on port ${port}`);
+    log(`serving on port ${port}`);
       console.log(`OpenAI API Key status: ${process.env.OPENAI_API_KEY ? 'Configured' : 'NOT CONFIGURED'}`);
       console.log(`=====================`);
-    });
+  });
   } catch (err: any) {
     console.error('Failed to start server:', err);
     log(`SERVER STARTUP ERROR: ${err.name}: ${err.message}\n${err.stack || ''}`);
