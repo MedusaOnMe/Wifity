@@ -73,7 +73,7 @@ export default function ImageGenerator() {
       setIsUpdating(true);
       
       // Convert to finger art
-      data.prompt = `Take the input image and transform its main character into a cartoon-style drawing painted onto a human finger. The finger should be photographed in high-resolution, with visible fingerprint texture. Adapt the subject's key features (like hairstyle, color, costume, or iconic accessories) to fit the rounded shape of the fingertip while keeping it cute, simple, and expressive — like a finger puppet. Background should be plain or themed based on the original character's environment. The result should look like a whimsical, hand-drawn finger art tribute — not a real person, but a stylized cartoon drawn on a finger: ${data.prompt}`;
+      data.prompt = `Create a cute cartoon drawing of ${data.prompt} painted on a human finger like finger art`;
       
       const response = await fetch("/api/images/generate", {
         method: "POST",
@@ -132,7 +132,7 @@ export default function ImageGenerator() {
       formData.append("image", fileCopy);
       
       // Automatic conversion prompt - no user input needed
-      const autoPrompt = "Take the input image and transform its main character into a cartoon-style drawing painted onto a human finger. The finger should be photographed in high-resolution, with visible fingerprint texture. Adapt the subject's key features (like hairstyle, color, costume, or iconic accessories) to fit the rounded shape of the fingertip while keeping it cute, simple, and expressive — like a finger puppet. Background should be plain or themed based on the original character's environment. The result should look like a whimsical, hand-drawn finger art tribute — not a real person, but a stylized cartoon drawn on a finger.";
+      const autoPrompt = "Transform this into a cute cartoon drawing painted on a human finger like finger art";
       
       formData.append("prompt", autoPrompt);
       formData.append("mask_strength", maskStrength.toString());

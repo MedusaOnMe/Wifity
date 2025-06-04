@@ -95,6 +95,7 @@ app.use((req, res, next) => {
         `http://localhost:${port}`;
       
     log(`serving on port ${port}`);
+    console.log(`🚀 Server running at http://localhost:${port}`);
   });
   } catch (err: any) {
     log(`SERVER STARTUP ERROR: ${err.name}: ${err.message}\n${err.stack || ''}`);
