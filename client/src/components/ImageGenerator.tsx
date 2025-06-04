@@ -410,10 +410,10 @@ export default function ImageGenerator() {
                     {activeMutation.isPending ? (
                       <span className="flex items-center gap-2">
                         <div className="w-5 h-5 custom-spinner"></div>
-                        Ditofying...
+                        ditofying...
                       </span>
                     ) : (
-                      <span>Ditofy</span>
+                      <span>ditofy</span>
                     )}
                   </Button>
                 </form>
@@ -495,10 +495,10 @@ export default function ImageGenerator() {
                     {activeMutation.isPending ? (
                       <span className="flex items-center gap-2">
                         <div className="w-5 h-5 custom-spinner"></div>
-                        Ditofying...
+                        ditofying...
                       </span>
                     ) : (
-                      <span>Ditofy</span>
+                      <span>ditofy</span>
                     )}
                   </Button>
                 </form>
@@ -514,7 +514,7 @@ export default function ImageGenerator() {
               {activeMutation.isPending ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 custom-spinner mx-auto mb-4"></div>
-                  <h4 className="text-lg font-display gradient-text mb-2">Ditofying...</h4>
+                  <h4 className="text-lg font-display gradient-text mb-2">ditofying...</h4>
                   <p className="text-hsl(var(--muted-foreground))">Processing your image...</p>
                 </div>
               ) : activeMutation.isError ? (

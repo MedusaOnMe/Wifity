@@ -113,7 +113,7 @@ export default function GallerySection() {
               No images yet!
             </p>
             <p className="text-hsl(var(--muted-foreground))">
-              Ditofy some images to see them here!
+              ditofy some images to see them here!
             </p>
           </div>
         )}
@@ -141,7 +141,7 @@ export default function GallerySection() {
               
               <div className="p-8">
                 <h3 className="text-2xl font-display gradient-text mb-2">
-                  Ditofied Image
+                  ditofied Image
                 </h3>
                 <p className="text-sm text-hsl(var(--muted-foreground)) mb-6 font-mono">
                   Created: {new Date(selectedImage.timestamp).toLocaleString()}
