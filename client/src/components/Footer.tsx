@@ -1,39 +1,57 @@
 import { Link } from "wouter";
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="glass border-t border-white/5 py-6">
+    <footer className="bg-white border-t border-gray-200 py-8">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2 mb-4 md:mb-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9333EA] to-[#06B6D4] flex items-center justify-center">
-              <i className="ri-image-line text-sm"></i>
-            </div>
-            <span className="font-display font-bold">Meme<span className="text-[#06B6D4]">X</span></span>
-          </Link>
-          
-          <div className="flex space-x-4 mb-4 md:mb-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">Support</a>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          {/* Logo Section */}
+          <div>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">N</span>
+              </div>
+              <div>
+                <span className="font-display text-lg font-semibold text-gray-700">
+                  No-ify
+                </span>
+                <div className="text-xs text-gray-500">Simple nofacify</div>
+              </div>
+            </Link>
           </div>
           
-          <div className="flex space-x-3">
-            <a href="#" className="w-8 h-8 rounded-full bg-[#334155] flex items-center justify-center text-gray-300 hover:bg-[#9333EA] transition-colors">
-              <i className="ri-twitter-x-line"></i>
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#334155] flex items-center justify-center text-gray-300 hover:bg-[#9333EA] transition-colors">
-              <i className="ri-discord-line"></i>
-            </a>
-            <a href="#" className="w-8 h-8 rounded-full bg-[#334155] flex items-center justify-center text-gray-300 hover:bg-[#9333EA] transition-colors">
-              <i className="ri-github-fill"></i>
-            </a>
+          {/* Quick Links */}
+          <div className="flex items-center gap-6">
+            <Link 
+              href="/" 
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Convert
+            </Link>
+            <Link 
+              href="/gallery" 
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              Gallery
+            </Link>
           </div>
         </div>
         
-        <div className="text-center text-gray-500 text-xs mt-6">
-          <p>© {new Date().getFullYear()} MemeX. All rights reserved.</p>
-          <p className="mt-1">Transform your images and memes with AI-powered editing.</p>
+        {/* Divider */}
+        <div className="w-full h-px bg-gray-200 my-6"></div>
+        
+        {/* Bottom Section */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-center md:text-left">
+            <p className="text-gray-600 text-sm">
+              © {currentYear} No-ify. All rights reserved.
+            </p>
+            <p className="text-gray-500 text-xs mt-1">
+              Convert images to clean, minimalist nofacified versions.
+            </p>
+          </div>
         </div>
       </div>
     </footer>

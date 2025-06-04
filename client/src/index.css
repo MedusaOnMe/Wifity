@@ -1,146 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 240 10% 4%;
-    --foreground: 210 20% 98%;
-    
-    --card: 240 10% 6%;
-    --card-foreground: 210 20% 98%;
-    
-    --popover: 240 10% 8%;
-    --popover-foreground: 210 20% 98%;
-    
-    --primary: 217 91% 60%;
-    --primary-foreground: 210 20% 98%;
-    
-    --secondary: 236 30% 30%;
-    --secondary-foreground: 210 20% 98%;
-    
-    --muted: 240 10% 16%;
-    --muted-foreground: 217 10% 70%;
-    
-    --accent: 264 100% 76%;
-    --accent-foreground: 210 20% 98%;
-    
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 210 20% 98%;
-    
-    --border: 240 10% 15%;
-    --input: 240 10% 15%;
-    --ring: 236 30% 30%;
-    
-    --radius: 0.5rem;
-  }
+/* Soft Gray Profile Colors */
+:root {
+  --twitter-bg: #FFFFFF;
+  --twitter-silhouette: #AAB8C2;
+  --twitter-border: #E1E8ED;
+  --twitter-text: #14171A;
+  --twitter-text-secondary: #657786;
   
-  * {
-    @apply border-border;
-  }
-  
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
+  --background: 0 0% 97%;
+  --foreground: 210 11% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 11% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 11% 8%;
+  --primary: 210 11% 40%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 210 16% 93%;
+  --secondary-foreground: 210 11% 15%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 210 11% 40%;
+  --accent: 210 16% 93%;
+  --accent-foreground: 210 11% 15%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 210 16% 90%;
+  --input: 210 16% 93%;
+  --ring: 210 11% 40%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 0 0% 97%;
+  --foreground: 210 11% 8%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 11% 8%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 210 11% 8%;
+  --primary: 210 11% 40%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 210 16% 93%;
+  --secondary-foreground: 210 11% 15%;
+  --muted: 210 16% 93%;
+  --muted-foreground: 210 11% 40%;
+  --accent: 210 16% 93%;
+  --accent-foreground: 210 11% 15%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 210 16% 90%;
+  --input: 210 16% 93%;
+  --ring: 210 11% 40%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: #FFFFFF;
+  color: #14171A;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* Simple scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #AAB8C2;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8899A6;
 }
 
 @layer components {
-  /* Glass effect */
-  .glass {
-    @apply backdrop-blur-md bg-[#0f101a]/50 border border-[#262a45]/30;
+  /* Simple card style */
+  .card-simple {
+    background: white;
+    border: 1px solid #E1E8ED;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
-  
-  /* Obscura canvas text gradient */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#c026d3] to-[#8b5cf6];
+
+  /* Simple button style */
+  .btn-simple {
+    background: #AAB8C2;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 24px;
+    font-weight: 500;
+    transition: background-color 0.2s;
   }
-  
-  /* Terminal-like typewriter animation for text */
-  .typewriter {
-    overflow: hidden;
-    border-right: 2px solid rgba(255, 255, 255, 0.75);
-    white-space: nowrap;
-    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+
+  .btn-simple:hover {
+    background: #8899A6;
   }
-  
-  @keyframes typing {
-    from { width: 0 }
-    to { width: 100% }
+
+  .btn-simple:disabled {
+    background: #CCD6DD;
+    cursor: not-allowed;
   }
-  
-  @keyframes blink-caret {
-    from, to { border-color: transparent }
-    50% { border-color: rgba(255, 255, 255, 0.75) }
+
+  /* Simple input style */
+  .input-simple {
+    background: white;
+    border: 1px solid #E1E8ED;
+    border-radius: 8px;
+    padding: 12px 16px;
+    transition: border-color 0.2s;
   }
-  
-  /* Glitch effect animation */
-  .glitch {
-    position: relative;
+
+  .input-simple:focus {
+    outline: none;
+    border-color: #AAB8C2;
+    box-shadow: 0 0 0 2px rgba(170, 184, 194, 0.1);
   }
-  
-  .glitch::before,
-  .glitch::after {
-    content: attr(data-text);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.8;
+
+  /* Remove all animations and fancy effects */
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.2s !important;
   }
-  
-  .glitch::before {
-    animation: glitch-effect 2s infinite;
-    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
-    transform: translate(-5px, -5px);
-    text-shadow: -1px 0 #8b5cf6;
+}
+
+/* Custom spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
   }
-  
-  .glitch::after {
-    animation: glitch-effect 2s infinite reverse;
-    clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
-    transform: translate(5px, 5px);
-    text-shadow: 1px 0 #c026d3;
+  to {
+    transform: rotate(360deg);
   }
-  
-  @keyframes glitch-effect {
-    0% {
-      transform: translate(0);
-    }
-    20% {
-      transform: translate(-3px, 3px);
-    }
-    40% {
-      transform: translate(-3px, -3px);
-    }
-    60% {
-      transform: translate(3px, 3px);
-    }
-    80% {
-      transform: translate(3px, -3px);
-    }
-    100% {
-      transform: translate(0);
-    }
-  }
-  
-  /* Cryptic symbol animation */
-  .cryptic-symbols {
-    font-family: monospace;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  
-  .cryptic-symbols::after {
-    content: "⌘⌥⌦⎋⌬⏣⏢⏥⌓⌔⌖⌗";
-    animation: cycle-symbols 8s infinite;
-  }
-  
-  @keyframes cycle-symbols {
-    0%, 100% { content: "⌘⌥⌦⎋⌬⏣⏢⏥⌓⌔⌖⌗"; }
-    25% { content: "⌗⌖⌔⌓⏥⏢⏣⌬⎋⌦⌥⌘"; }
-    50% { content: "⏥⏢⏣⌬⎋⌦⌥⌘⌗⌖⌔⌓"; }
-    75% { content: "⌓⌔⌖⌗⌘⌥⌦⎋⌬⏣⏢⏥"; }
-  }
-} 
+}
+
+.custom-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Typography */
+.font-display {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+/* Utility classes for soft gray style */
+.twitter-bg {
+  background-color: #FFFFFF;
+}
+
+.twitter-silhouette {
+  background-color: #AAB8C2;
+}
+
+.twitter-border {
+  border-color: #E1E8ED;
+}
+
+.twitter-text {
+  color: #14171A;
+}
+
+.twitter-text-secondary {
+  color: #657786;
+}
+
+/* Rounded corners for no-ify style */
+.no-ify-rounded {
+  border-radius: 16px;
+}
+
+.no-ify-card {
+  background: white;
+  border: 1px solid #E1E8ED;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}

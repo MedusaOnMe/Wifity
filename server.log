@@ -1,0 +1,22 @@
+nohup: ignoring input
+
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+5:02:27 PM [express] OpenAI API key appears valid (starts with correct prefix and has sufficient length).
+5:02:27 PM [express] OpenAI API key configured: Yes (length: 164)
+5:02:27 PM [express] Testing OpenAI API connection at server startup...
+5:02:27 PM [express] Testing OpenAI API connection...
+5:02:28 PM [express] SUCCESS: OpenAI API connection test passed.
+5:02:28 PM [express] OpenAI API connection verified successfully.
+=== SERVER STARTING ===
+Server listening on http://localhost:5000
+Environment: development
+5:02:28 PM [express] serving on port 5000
+OpenAI API Key status: Configured
+=====================
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+5:10:30 PM [vite] ✨ new dependencies optimized: sonner, firebase/app, firebase/analytics, firebase/storage
+5:10:30 PM [vite] ✨ optimized dependencies changed. reloading

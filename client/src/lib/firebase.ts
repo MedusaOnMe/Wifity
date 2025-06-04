@@ -75,7 +75,6 @@ export async function uploadImageToFirebase(imageUrl: string, prompt: string): P
     // First, fetch the image data
     // Check if this is a blob URL and use proper error handling
     const response = await fetch(imageUrl).catch(error => {
-      console.error("Fetch failed for image URL:", error);
       throw new Error(`Failed to fetch image: ${error.message}`);
     });
     
@@ -112,10 +111,8 @@ export async function uploadImageToFirebase(imageUrl: string, prompt: string): P
       id: filename
     });
     
-    console.log("Image successfully uploaded to Firebase:", downloadURL);
     return downloadURL;
   } catch (error) {
-    console.error("Error uploading image to Firebase:", error);
     throw error;
   }
 }
@@ -154,7 +151,6 @@ export async function getAllImagesFromFirebase() {
     // Sort by timestamp, newest first
     return images.sort((a, b) => b.timestamp - a.timestamp);
   } catch (error) {
-    console.error("Error fetching images from Firebase:", error);
     throw error;
   }
 }
@@ -220,7 +216,6 @@ export function onStorageChange(callback: (images: any[]) => void) {
       const images = await getAllImagesFromFirebase();
       callback(images);
     } catch (error) {
-      console.error("Error in real-time update:", error);
     }
   });
 }

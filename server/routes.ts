@@ -47,7 +47,6 @@ setInterval(() => {
           if (fs.existsSync(job.imageData.imagePath)) fs.unlinkSync(job.imageData.imagePath);
           if (fs.existsSync(job.imageData.tempPngPath)) fs.unlinkSync(job.imageData.tempPngPath);
         } catch (e) {
-          console.error('Error cleaning up files for job:', jobId, e);
         }
       }
       
@@ -108,18 +107,11 @@ async function processImageEditJob(jobId: string, imageData: { imagePath: string
       fs.closeSync(fd);
       
       const isPNG = headerBuffer.toString('hex').startsWith('89504e47');
-      log(`Debug - File header check: isPNG=${isPNG}, header=${headerBuffer.toString('hex').substring(0, 16)}`);
-      
-      // Log file extension and path
-      log(`Debug - File path: ${imageData.tempPngPath}`);
-      log(`Debug - File extension: ${path.extname(imageData.tempPngPath)}`);
     } catch (debugError: any) {
       log(`Debug - Error checking file: ${debugError.message}`);
     }
     
     // Try an alternative approach using direct API access, bypassing SDK transformations
-    log(`Job ${jobId}: Trying direct API approach with model=${modelName}`);
-    
     let response;
     
     if (modelName === "gpt-image-1") {
@@ -249,11 +241,9 @@ async function processImageEditJob(jobId: string, imageData: { imagePath: string
       if (fs.existsSync(imageData.imagePath)) fs.unlinkSync(imageData.imagePath);
       if (fs.existsSync(imageData.tempPngPath)) fs.unlinkSync(imageData.tempPngPath);
     } catch (e: any) {
-      console.error('Error cleaning up files for completed job:', jobId, e);
     }
     
   } catch (error: any) {
-    console.error(`Job ${jobId} failed:`, error);
     
     // Update job status
     jobQueue[jobId].status = 'failed';
@@ -265,7 +255,6 @@ async function processImageEditJob(jobId: string, imageData: { imagePath: string
       if (fs.existsSync(imageData.imagePath)) fs.unlinkSync(imageData.imagePath);
       if (fs.existsSync(imageData.tempPngPath)) fs.unlinkSync(imageData.tempPngPath);
     } catch (e) {
-      console.error('Error cleaning up files for failed job:', jobId, e);
     }
   }
 }
@@ -327,7 +316,6 @@ export async function registerRoutes(app: Application) {
       const images = await storage.getAllImages();
       res.json(images);
     } catch (error) {
-      console.error('Error fetching images:', error);
       res.status(500).json({ message: 'Failed to fetch images' });
     }
   });
@@ -346,7 +334,6 @@ export async function registerRoutes(app: Application) {
 
       res.json(image);
     } catch (error) {
-      console.error('Error fetching image:', error);
       res.status(500).json({ message: 'Failed to fetch image' });
     }
   });
@@ -367,7 +354,6 @@ export async function registerRoutes(app: Application) {
       // Define model explicitly and log it clearly
       const modelName = "gpt-image-1";
       log(`IMPORTANT - Generating image with MODEL: "${modelName}" and prompt: "${prompt.slice(0, 30)}..."`);
-      console.log(`MODEL CHECK: Using "${modelName}" for image generation`);
       
       // Build request parameters based on model
       const requestParams: any = {
@@ -391,12 +377,10 @@ export async function registerRoutes(app: Application) {
         requestParams.style = style;
       }
       
-      console.log("Final request parameters:", JSON.stringify(requestParams, null, 2));
       
       const response = await generateImage(requestParams);
       
       // Simplified response logging
-      console.log(`MODEL CONFIRMATION: Generated image using "${modelName}"`);
       
       // Add more robust response parsing for different possible response formats
       let imageUrl;
@@ -404,52 +388,29 @@ export async function registerRoutes(app: Application) {
       // Try different possible response formats without excessive logging
       if (response.data && Array.isArray(response.data) && response.data.length > 0) {
         // Add more detailed logging for debugging
-        console.log("Image response first item keys:", Object.keys(response.data[0]));
         
         // Standard format with direct URL
         if ('url' in response.data[0] && response.data[0].url) {
           imageUrl = response.data[0].url as string;
-          console.log("Found image URL (standard format)");
         } 
         // Base64 data format
         else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
           imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
-          console.log("Found base64 image data");
-          
-          // Log token usage if available
-          if ('token_usage' in response.data[0]) {
-            console.log("Token usage:", JSON.stringify((response.data[0] as any).token_usage));
-          }
         }
         // Log the revised prompt if available
-        if ('revised_prompt' in response.data[0]) {
-          console.log("Revised prompt:", (response.data[0] as any).revised_prompt.substring(0, 50) + "...");
-        }
       } else if (typeof response.data === 'object' && response.data !== null) {
-        console.log("Response data is an object, keys:", Object.keys(response.data));
         
         // Some APIs might return a single object rather than an array
         if ('url' in response.data && response.data.url) {
           imageUrl = response.data.url as string;
-          console.log("Found image URL (object format)");
         } else if ('b64_json' in response.data && response.data.b64_json) {
           imageUrl = `data:image/png;base64,${response.data.b64_json as string}`;
-          console.log("Found base64 image data (object format)");
         }
       }
       
       if (!imageUrl) {
         // If we couldn't find an image URL or base64 data through standard methods,
         // log the entire response structure as a last resort
-        console.error("Could not extract image URL from response");
-        console.error("Full response structure:", JSON.stringify({
-          responseKeys: Object.keys(response),
-          dataType: response.data ? (Array.isArray(response.data) ? "array" : "object") : "none",
-          dataKeys: response.data ? (Array.isArray(response.data) 
-            ? (response.data.length > 0 ? Object.keys(response.data[0]) : []) 
-            : Object.keys(response.data)) 
-            : []
-        }));
         throw new Error('No image URL could be extracted from OpenAI response');
       }
       
@@ -463,7 +424,6 @@ export async function registerRoutes(app: Application) {
       
       res.json(image);
     } catch (error: any) {
-      console.error('Error generating image:', error);
       
       // Handle OpenAI API errors
       if (error.response) {
@@ -479,12 +439,10 @@ export async function registerRoutes(app: Application) {
 
   // Endpoints for the asynchronous job system
   app.post('/api/images/edit/create-job', (req, res) => {
-    console.log('=== IMAGE EDIT JOB CREATION REQUEST RECEIVED ===');
     
     // Check API key status upfront
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      console.error('ERROR: OpenAI API key is missing from environment variables');
       return res.status(500).json({
         message: 'Server configuration error: OpenAI API key is not configured',
         api_configured: false
@@ -493,14 +451,12 @@ export async function registerRoutes(app: Application) {
     
     // Validate API key format
     if (!apiKey.startsWith('sk-') || apiKey.length < 20) {
-      console.error('ERROR: OpenAI API key appears to be invalid (does not start with sk- or is too short)');
       return res.status(500).json({
         message: 'Server configuration error: OpenAI API key appears invalid',
         api_configured: false
       });
     }
     
-    console.log(`API key configured and properly formatted (length: ${apiKey.length})`);
     
     // Set up response content type for consistency
     res.setHeader('Content-Type', 'application/json');
@@ -513,29 +469,24 @@ export async function registerRoutes(app: Application) {
       try {
         // Check for upload errors
         if (uploadErr) {
-          console.error('Upload error:', uploadErr);
           return res.status(400).json({ message: uploadErr.message || 'File upload failed' });
         }
 
         // Validate request
         if (!req.file) {
-          console.error('No file uploaded');
           return res.status(400).json({ message: 'No image uploaded' });
         }
         
         const prompt = req.body.prompt;
         if (!prompt) {
-          console.error('No prompt provided');
           return res.status(400).json({ message: 'Prompt is required' });
         }
         
         // Save the image path
         imagePath = req.file.path;
-        console.log(`Image uploaded to: ${imagePath}`);
         
         // Ensure the image is in PNG format with transparency (required by OpenAI)
         tempPngPath = `${imagePath}.png`;
-        console.log(`Converting to PNG: ${tempPngPath}`);
         
         // Convert to PNG with alpha channel
         await sharp(imagePath)
@@ -545,7 +496,6 @@ export async function registerRoutes(app: Application) {
           .withMetadata() // Keep essential metadata
           .toFile(tempPngPath);
         
-        console.log('Image successfully converted to PNG and resized');
         
         // Verify PNG file exists and has content
         if (!fs.existsSync(tempPngPath) || fs.statSync(tempPngPath).size === 0) {
@@ -554,7 +504,6 @@ export async function registerRoutes(app: Application) {
         
         // Define model explicitly
         const modelName = "gpt-image-1";
-        console.log(`Creating job with MODEL: "${modelName}"`);
         
         // Create a job ID
         const jobId = crypto.randomBytes(16).toString('hex');
@@ -573,7 +522,6 @@ export async function registerRoutes(app: Application) {
         // Start processing the job asynchronously
         processImageEditJob(jobId, { imagePath, tempPngPath }, prompt, modelName)
           .catch(error => {
-            console.error(`Unhandled error in job ${jobId}:`, error);
           });
         
         // Return the job ID immediately
@@ -584,7 +532,6 @@ export async function registerRoutes(app: Application) {
         });
         
       } catch (error: any) {
-        console.error('Server error processing image:', error);
         
         // Clean up any files
         if (imagePath && fs.existsSync(imagePath)) {
@@ -646,8 +593,6 @@ export async function registerRoutes(app: Application) {
             
   // Legacy endpoint for direct image editing (keeping for compatibility)
   app.post('/api/images/edit', (req, res) => {
-    console.log('=== IMAGE EDIT REQUEST RECEIVED (LEGACY ENDPOINT) ===');
-    console.log('Redirecting to job-based asynchronous processing');
     
     // Use multer to handle file upload and forward to job creation endpoint
     upload(req, res, async (uploadErr) => {
@@ -700,7 +645,6 @@ export async function registerRoutes(app: Application) {
         // Start processing the job asynchronously
         processImageEditJob(jobId, { imagePath, tempPngPath }, prompt, modelName)
           .catch(error => {
-            console.error(`Unhandled error in job ${jobId}:`, error);
           });
         
         // Poll the job until it completes or fails (max 5 minutes)
@@ -746,7 +690,6 @@ export async function registerRoutes(app: Application) {
         setTimeout(checkJobCompletion, pollInterval);
         
       } catch (error: any) {
-        console.error('Error setting up job:', error);
         return res.status(500).json({ 
           message: error.message || 'Error processing image'
         });

@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import MobileNavDrawer from "@/components/MobileNavDrawer";
-import { AnimatedBackground } from "@/components/ui/animated-background";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAllImagesFromFirebase, onStorageChange } from "@/lib/firebase";
 import { downloadImage } from "@/lib/image-utils";
@@ -54,20 +52,18 @@ export default function Gallery() {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <AnimatedBackground />
-      
+    <div className="flex flex-col min-h-screen bg-white">
       <Header onMenuClick={() => setIsMobileNavOpen(true)} />
       
       <main className="flex-1 pt-20 pb-10">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
-            <h1 className="font-display font-bold text-3xl md:text-4xl">
-              Your <span className="text-gradient">AI Creations</span>
+            <h1 className="font-display font-bold text-3xl md:text-4xl text-gray-800">
+              Gallery
             </h1>
-            <Link href="/" className="glass px-4 py-2 rounded-lg hover:bg-[#334155] transition-colors flex items-center gap-2">
-              <i className="ri-add-line"></i>
-              Create New
+            <Link href="/" className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
+              <span>+</span>
+              Create More
             </Link>
           </div>
           
@@ -140,7 +136,6 @@ export default function Gallery() {
         </div>
       </main>
       
-      <Footer />
       
       <MobileNavDrawer 
         isOpen={isMobileNavOpen} 

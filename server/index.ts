@@ -4,15 +4,11 @@ import { setupVite, serveStatic, log } from "./vite";
 
 // Add global unhandled exception handlers to prevent crashes
 process.on('uncaughtException', (err) => {
-  console.error('CRITICAL: Uncaught Exception detected. Server continuing to run, but may be in an unstable state.');
-  console.error(err);
   log(`UNCAUGHT EXCEPTION: ${err.name}: ${err.message}\n${err.stack || ''}`);
   // Note: Not exiting process to keep server alive, but this should be monitored
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('CRITICAL: Unhandled Promise Rejection detected.');
-  console.error('Reason:', reason);
   log(`UNHANDLED REJECTION: ${reason instanceof Error ? reason.stack : String(reason)}`);
   // Note: Not exiting process to keep server alive, but this should be monitored
 });
@@ -65,7 +61,6 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       // Log the error details for debugging
-      console.error('Express error handler caught:', err);
       log(`EXPRESS ERROR: ${err.name}: ${err.message}\n${err.stack || ''}`);
       
     const status = err.status || err.statusCode || 500;
@@ -99,15 +94,9 @@ app.use((req, res, next) => {
         `http://${address.address === '0.0.0.0' ? 'localhost' : address.address}:${address.port}` :
         `http://localhost:${port}`;
       
-      console.log(`=== SERVER STARTING ===`);
-      console.log(`Server listening on ${url}`);
-      console.log(`Environment: ${app.get("env")}`);
     log(`serving on port ${port}`);
-      console.log(`OpenAI API Key status: ${process.env.OPENAI_API_KEY ? 'Configured' : 'NOT CONFIGURED'}`);
-      console.log(`=====================`);
   });
   } catch (err: any) {
-    console.error('Failed to start server:', err);
     log(`SERVER STARTUP ERROR: ${err.name}: ${err.message}\n${err.stack || ''}`);
   }
 })();

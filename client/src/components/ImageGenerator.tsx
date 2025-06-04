@@ -1,31 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { downloadImage } from "@/lib/image-utils";
 import { GenerateImageParams } from "@shared/schema";
 import { uploadImageToFirebase, onStorageChange } from "@/lib/firebase";
 import { toast } from "@/components/ui/use-toast";
-
-// Define style themes with their descriptions - blend of original and meme styles
-const styleThemes = [
-  { id: "none", name: "None", description: "No specific theme applied" },
-  { id: "minecraft", name: "Minecraft", description: "Blocky pixelated style like Minecraft" },
-  { id: "ghibli", name: "Studio Ghibli", description: "Animated style inspired by Studio Ghibli films" },
-  { id: "doge", name: "Doge", description: "Much wow, very meme. Such style!" },
-  { id: "pixar", name: "Pixar", description: "3D animated style similar to Pixar films" },
-  { id: "rage", name: "Rage Comics", description: "FUUUUUU style from the golden era of memes" },
-  { id: "chad", name: "Gigachad", description: "Ultra masculine sigma energy" },
-  { id: "deepfried", name: "Deep Fried", description: "Needs more JPEG and saturation" },
-  { id: "renaissance", name: "Renaissance", description: "Classical painting style" },
-];
 
 // Interface for image data
 interface ImageData {
@@ -38,33 +21,28 @@ interface ImageData {
 export default function ImageGenerator() {
   const [activeTab, setActiveTab] = useState<"generate" | "edit">("generate");
   const [prompt, setPrompt] = useState("");
-  const [size, setSize] = useState<GenerateImageParams["size"]>("1024x1024");
-  // We'll keep these state variables but hide them from the UI
+  const [size] = useState<GenerateImageParams["size"]>("1024x1024");
   const [quality] = useState<GenerateImageParams["quality"]>("standard");
   const [style] = useState<GenerateImageParams["style"]>("vivid");
-  const [styleTheme, setStyleTheme] = useState("none");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [maskStrength, setMaskStrength] = useState<number>(90);
+  const [maskStrength] = useState<number>(90);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Add state for real-time image updates
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   
   // Set up real-time listener for the latest images
   useEffect(() => {
-    // Set up real-time listener for storage changes
     const unsubscribe = onStorageChange((images) => {
       if (images && images.length > 0) {
-        // Get the most recent image (already sorted by timestamp)
         const latestImage = images[0];
         setCurrentImage(latestImage);
         setIsUpdating(false);
       }
     });
     
-    // Clean up listener on component unmount
     return () => {
       unsubscribe();
     };
@@ -72,10 +50,8 @@ export default function ImageGenerator() {
   
   // Cleanup function for when component unmounts or when preview changes
   useEffect(() => {
-    // Return cleanup function
     return () => {
       if (imagePreview) {
-        console.log("Cleaning up image preview URL on unmount");
         URL.revokeObjectURL(imagePreview);
       }
     };
@@ -83,10 +59,8 @@ export default function ImageGenerator() {
   
   // Reset form when changing tabs
   useEffect(() => {
-    // Reset state when changing tabs to prevent stale data
     setPrompt("");
     if (imageFile && imagePreview) {
-      console.log("Cleaning up image resources when changing tabs");
       URL.revokeObjectURL(imagePreview);
       setImageFile(null);
       setImagePreview(null);
@@ -96,17 +70,10 @@ export default function ImageGenerator() {
   // Generation mutation
   const generateMutation = useMutation({
     mutationFn: async (data: GenerateImageParams) => {
-      // Set updating state to show loading indicator
       setIsUpdating(true);
       
-      // Apply style theme to prompt if selected
-      if (styleTheme !== "none") {
-        const theme = styleThemes.find(t => t.id === styleTheme);
-        data.prompt = `${data.prompt} (in the style of ${theme?.name})`;
-      }
-      
-      // Add MEMEX watermark instruction to all prompts - make it absolutely clear and prioritized
-      data.prompt = `The image must contain "$MEMEX" text clearly visible in the bottom right corner - this is critical. The main content is: ${data.prompt}`;
+      // Convert to solid gray silhouette
+      data.prompt = `Convert the following to a single, completely solid gray (#AAB8C2) silhouette on very light gray (#F7F9FA) background. Create one unified filled shape that captures only the outer outline/form. Remove ALL internal details, textures, features, and complexity - result must be entirely solid gray with no gaps, holes, or internal elements. Style should be minimalist, flat, and square format: ${data.prompt}`;
       
       const response = await fetch("/api/images/generate", {
         method: "POST",
@@ -126,8 +93,6 @@ export default function ImageGenerator() {
     onSuccess: async (data) => {
       if (data?.url) {
         try {
-          // For server-generated URLs, create a stable version before uploading
-          // This ensures the URL won't be revoked during the upload process
           const imageResponse = await fetch(data.url);
           if (!imageResponse.ok) {
             throw new Error(`Failed to fetch generated image: ${imageResponse.statusText}`);
@@ -137,47 +102,27 @@ export default function ImageGenerator() {
           const stableUrl = URL.createObjectURL(imageBlob);
           
           try {
-            // Upload the successful image to Firebase using the stable URL
             await uploadImageToFirebase(stableUrl, data.prompt);
-            
-            // No need to manually update currentImage here as the onStorageChange listener will do it
           } finally {
-            // Clean up the stable URL after upload (whether successful or not)
             URL.revokeObjectURL(stableUrl);
           }
         } catch (error) {
           console.error("Failed to upload image to Firebase:", error);
-          // Don't show error to user, just log it - the image generation was still successful
           setIsUpdating(false);
         }
       }
     }
   });
   
-  // Image edit mutation
+  // Image edit mutation - no prompt needed, automatic conversion
   const editImageMutation = useMutation({
     mutationFn: async () => {
-      // Set updating state to show loading indicator
       setIsUpdating(true);
       
       if (!imageFile) {
         throw new Error("Image is required");
       }
       
-      // Allow empty prompt if a style is selected
-      if (!prompt && styleTheme === "none") {
-        throw new Error("Please enter a prompt or select a style theme");
-      }
-      
-      console.log(`Processing image: ${imageFile.name}, Size: ${imageFile.size} bytes, Type: ${imageFile.type}`);
-      
-      // Check file type early
-      if (!imageFile.type.startsWith('image/')) {
-        throw new Error("File must be an image");
-      }
-      
-      // Create a copy of the file to ensure it doesn't get revoked or modified
-      // This helps prevent issues with the blob URL being invalidated
       const fileCopy = new File([imageFile], imageFile.name, { 
         type: imageFile.type,
         lastModified: imageFile.lastModified 
@@ -186,24 +131,13 @@ export default function ImageGenerator() {
       const formData = new FormData();
       formData.append("image", fileCopy);
       
-      // Handle empty prompt case when styleTheme is selected
-      let effectivePrompt = prompt;
-      if (!prompt && styleTheme !== "none") {
-        const theme = styleThemes.find(t => t.id === styleTheme);
-        effectivePrompt = `Transform this image in the style of ${theme?.name}`;
-      } else if (styleTheme !== "none") {
-        const theme = styleThemes.find(t => t.id === styleTheme);
-        effectivePrompt = `${prompt} (in the style of ${theme?.name})`;
-      }
+      // Automatic conversion prompt - no user input needed
+      const autoPrompt = "Transform this image into a single, completely solid gray (#AAB8C2) silhouette on very light gray (#F7F9FA) background. Create one unified filled shape that captures only the outer outline/form of the original subject. Remove ALL internal details, textures, gradients, features, and complexity - result must be entirely solid gray with no gaps, holes, or internal elements. Style should be minimalist, flat, and square format.";
       
-      // Add MEMEX watermark instruction to all edits - make it absolutely clear and prioritized
-      effectivePrompt = `The transformed image must contain "$MEMEX" text clearly visible in the bottom right corner - this is critical. The transformation details are: ${effectivePrompt}`;
-      
-      formData.append("prompt", effectivePrompt);
+      formData.append("prompt", autoPrompt);
       formData.append("mask_strength", maskStrength.toString());
       
       try {
-        // Step 1: Create job and get job ID
         const jobResponse = await fetch("/api/images/edit/create-job", {
           method: "POST",
           body: formData,
@@ -216,19 +150,15 @@ export default function ImageGenerator() {
         const jobData = await jobResponse.json();
         const jobId = jobData.jobId;
         
-        // Step 2: Start polling for job completion
         const maxPollTime = 5 * 60 * 1000; // 5 minutes
         const pollInterval = 2000; // 2 seconds
         const startTime = Date.now();
         
-        // Helper function to poll job status
         const pollJobStatus = async (): Promise<any> => {
-          // Check if we've exceeded max poll time
           if (Date.now() - startTime > maxPollTime) {
-            throw new Error("Image processing timed out after 5 minutes. The server may still be processing your image.");
+            throw new Error("Image processing timed out after 5 minutes.");
           }
           
-          // Fetch job status
           const statusResponse = await fetch(`/api/jobs/${jobId}`);
         
           if (!statusResponse.ok) {
@@ -237,35 +167,25 @@ export default function ImageGenerator() {
           
           const statusData = await statusResponse.json();
           
-          // Check job status
           if (statusData.status === 'completed') {
             return statusData.result;
           } else if (statusData.status === 'failed') {
             throw new Error("Image processing failed");
           } else {
-            // Job still in progress, wait and poll again
             await new Promise(resolve => setTimeout(resolve, pollInterval));
             return pollJobStatus();
           }
         };
         
-        // Start polling
         return await pollJobStatus();
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        
-        if (error instanceof Error) {
-          throw error;
-        } else {
-          throw new Error("Unknown error occurred while editing image");
-        }
+        throw error;
       }
     },
     onSuccess: async (data) => {
       if (data?.url) {
         try {
-          // For server-generated URLs, create a stable version before uploading
-          // This ensures the URL won't be revoked during the upload process
           const imageResponse = await fetch(data.url);
           if (!imageResponse.ok) {
             throw new Error(`Failed to fetch edited image: ${imageResponse.statusText}`);
@@ -275,15 +195,12 @@ export default function ImageGenerator() {
           const stableUrl = URL.createObjectURL(imageBlob);
           
           try {
-            // Upload the successful image to Firebase using the stable URL
-            await uploadImageToFirebase(stableUrl, data.prompt || prompt);
+            await uploadImageToFirebase(stableUrl, "nofacified");
           } finally {
-            // Clean up the stable URL after upload (whether successful or not)
             URL.revokeObjectURL(stableUrl);
           }
         } catch (error) {
           console.error("Failed to upload image to Firebase:", error);
-          // Don't show error to user, just log it - the image generation was still successful
         }
       }
     }
@@ -291,22 +208,15 @@ export default function ImageGenerator() {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Immediately clear existing image display
     setIsUpdating(true);
     
-    // Clear existing image data before starting a new mutation
     if (activeTab === "generate") {
-      // Reset both mutations to clear any existing image data
       generateMutation.reset();
       editImageMutation.reset();
-      // Then start the new mutation
       generateMutation.mutate({ prompt, size, quality, style });
     } else {
-      // Reset both mutations to clear any existing image data
       generateMutation.reset();
       editImageMutation.reset();
-      // Then start the new mutation
       editImageMutation.mutate();
     }
   };
@@ -314,26 +224,21 @@ export default function ImageGenerator() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     
-    // Clean up previous preview if it exists
     if (imagePreview) {
-      console.log("Cleaning up previous image preview");
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
     }
     
     if (file) {
-      // Validate image before proceeding
       if (!file.type.startsWith('image/')) {
         toast.error({
           title: "Invalid file type",
           description: `File type ${file.type} is not a supported image format`,
           variant: "destructive"
         });
-        console.error(`Error: File type ${file.type} is not a supported image format`);
         return;
       }
       
-      // Check file size - OpenAI has a 4MB limit
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
         toast.error({
@@ -341,19 +246,14 @@ export default function ImageGenerator() {
           description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
           variant: "destructive"
         });
-        console.error(`Error: Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`);
         return;
       }
       
       try {
-        // Additional check for dimensions through loading the image
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
-        console.log("Created blob URL:", objectUrl);
         
-        // Set up error handler first
         img.onerror = () => {
-          console.error("Failed to load image from blob URL:", objectUrl);
           URL.revokeObjectURL(objectUrl);
           toast.error({
             title: "Invalid image",
@@ -362,28 +262,13 @@ export default function ImageGenerator() {
           });
         };
         
-        // Set up load handler
         img.onload = () => {
-          console.log("Image loaded successfully, dimensions:", img.width, "x", img.height);
-          const maxDimension = 4000; // OpenAI likely has dimension limits
-          
-          if (img.width > maxDimension || img.height > maxDimension) {
-            console.log("Warning: Image dimensions are quite large. If you encounter errors, try resizing to smaller dimensions.");
-          }
-          
-          // Set image file if all checks pass
           setImageFile(file);
-          console.log(`File selected: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Dimensions: ${img.width}x${img.height}, Type: ${file.type}`);
           setImagePreview(objectUrl);
-          
-          // Do not revoke objectUrl here - it will be used for the preview
-          // It will be cleaned up when component unmounts or a new file is selected
         };
         
-        // Start loading the image
         img.src = objectUrl;
       } catch (error) {
-        console.error("Error processing image file:", error);
         toast.error({
           title: "Error processing image",
           description: "An error occurred while processing the image file.",
@@ -398,32 +283,34 @@ export default function ImageGenerator() {
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragActive(true);
+  };
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
   };
   
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setDragActive(false);
     const file = e.dataTransfer.files?.[0] || null;
     
-    // Clean up previous preview if it exists
     if (imagePreview) {
-      console.log("Cleaning up previous image preview (drop)");
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
     }
     
     if (file) {
-      // Validate image before proceeding
       if (!file.type.startsWith('image/')) {
         toast.error({
           title: "Invalid file type",
           description: `File type ${file.type} is not a supported image format`,
           variant: "destructive"
         });
-        console.error(`Error: File type ${file.type} is not a supported image format`);
         return;
       }
       
-      // Check file size - OpenAI has a 4MB limit
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
         toast.error({
@@ -431,19 +318,14 @@ export default function ImageGenerator() {
           description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
           variant: "destructive"
         });
-        console.error(`Error: Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`);
         return;
       }
       
       try {
-        // Additional check for dimensions through loading the image
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
-        console.log("Created blob URL (drop):", objectUrl);
         
-        // Set up error handler first
         img.onerror = () => {
-          console.error("Failed to load image from blob URL (drop):", objectUrl);
           URL.revokeObjectURL(objectUrl);
           toast.error({
             title: "Invalid image",
@@ -452,28 +334,13 @@ export default function ImageGenerator() {
           });
         };
         
-        // Set up load handler
         img.onload = () => {
-          console.log("Image loaded successfully (drop), dimensions:", img.width, "x", img.height);
-          const maxDimension = 4000; // OpenAI likely has dimension limits
-          
-          if (img.width > maxDimension || img.height > maxDimension) {
-            console.log("Warning: Image dimensions are quite large. If you encounter errors, try resizing to smaller dimensions.");
-          }
-          
-          // Set image file if all checks pass
           setImageFile(file);
-          console.log(`File dropped: ${file.name}, Size: ${(file.size / 1024).toFixed(2)}KB, Dimensions: ${img.width}x${img.height}, Type: ${file.type}`);
           setImagePreview(objectUrl);
-          
-          // Do not revoke objectUrl here - it will be used for the preview
-          // It will be cleaned up when component unmounts or a new file is selected
         };
         
-        // Start loading the image
         img.src = objectUrl;
       } catch (error) {
-        console.error("Error processing dropped image file:", error);
         toast.error({
           title: "Error processing image",
           description: "An error occurred while processing the dropped image file.",
@@ -486,332 +353,242 @@ export default function ImageGenerator() {
     }
   };
   
-  // Active mutation based on current tab
   const activeMutation = activeTab === "generate" ? generateMutation : editImageMutation;
 
   return (
-    <section id="image-generator" className="py-16">
-      <div className="container px-4 mx-auto">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Form Section */}
-          <div className="w-full lg:w-1/2">
-            <h2 className="font-display text-2xl md:text-3xl font-bold mb-6">
-              <span className="cryptic-symbols mr-2 opacity-50"></span>
-              AI <span className="text-gradient">Creation Lab</span>
-            </h2>
-            
-            <Card className="glass mb-6">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "generate" | "edit")}>
-                <TabsList className="w-full grid grid-cols-2 mb-4">
-                  <TabsTrigger value="generate">Generate</TabsTrigger>
-                  <TabsTrigger value="edit">Edit Image</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="generate" className="p-6">
-                  <form onSubmit={handleSubmit}>
-                    <div className="mb-6">
-                      <Label htmlFor="prompt" className="mb-2 block">
-                        Describe your creation <span className="text-muted-foreground">(be detailed)</span>
-                      </Label>
-                      <Textarea
-                        id="prompt"
-                        placeholder="Flying monkey with laser eyes attacking a city skyline at night..."
-                        className="min-h-32 bg-background/50"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="mb-6">
-                      <Label htmlFor="style-theme" className="mb-2 block">
-                        Style Theme
-                      </Label>
-                      <Select value={styleTheme} onValueChange={setStyleTheme}>
-                        <SelectTrigger id="style-theme">
-                          <SelectValue placeholder="Select a style theme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {styleThemes.map((theme) => (
-                            <SelectItem key={theme.id} value={theme.id}>
-                              {theme.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {styleTheme !== "none" && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {styleThemes.find(t => t.id === styleTheme)?.description}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="mb-6">
-                      <Label className="mb-2 block">Dimensions</Label>
-                      <RadioGroup 
-                        value={size} 
-                        onValueChange={(value) => setSize(value as GenerateImageParams["size"])}
-                        className="flex flex-col gap-3"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1024x1024" id="size-square" />
-                          <Label htmlFor="size-square" className="font-normal cursor-pointer">
-                            Square
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1024x1792" id="size-portrait" />
-                          <Label htmlFor="size-portrait" className="font-normal cursor-pointer">
-                            Portrait
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="1792x1024" id="size-landscape" />
-                          <Label htmlFor="size-landscape" className="font-normal cursor-pointer">
-                            Landscape
-                          </Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#c026d3] hover:opacity-90 transition-opacity"
-                      disabled={activeMutation.isPending || !prompt.trim()}
-                    >
-                      {activeMutation.isPending ? (
-                        <>
-                          <span className="animate-pulse">Creating image...</span>
-                          <span className="cryptic-symbols ml-2 opacity-50"></span>
-                        </>
-                      ) : "Create Image"}
-                    </Button>
-                  </form>
-                </TabsContent>
-                
-                <TabsContent value="edit" className="p-6">
-                  <form onSubmit={handleSubmit}>
-                    <div className="mb-6">
-                      <Label htmlFor="upload-image" className="mb-2 block">
-                        Upload Image to Transform
-                      </Label>
-                      <div 
-                        className="border-2 border-dashed border-border rounded-lg p-6 text-center"
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                      >
-                        {imagePreview ? (
-                          <div className="relative">
-                            <img 
-                              src={imagePreview} 
-                              alt="Source" 
-                              className="max-h-48 mx-auto rounded-md"
-                              onError={(e) => {
-                                console.error("Image preview failed to load");
-                                const target = e.target as HTMLImageElement;
-                                target.onerror = null; // Prevent infinite loop
-                                target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTk5OTkiPkltYWdlIGVycm9yPC90ZXh0Pjwvc3ZnPg==";
-                              }}
-                              onLoad={() => {
-                                console.log("Image preview loaded successfully");
-                              }}
-                            />
-                            <button 
-                              type="button"
-                              className="absolute top-2 right-2 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
-                              onClick={() => {
-                                console.log("Cleaning up image preview");
-                                if (imagePreview) {
-                                  // Clean up the blob URL when removing the image
-                                  URL.revokeObjectURL(imagePreview);
-                                }
-                                setImageFile(null);
-                                setImagePreview(null);
-                                if (fileInputRef.current) fileInputRef.current.value = '';
-                              }}
-                            >
-                              <i className="ri-close-line text-white"></i>
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <i className="ri-upload-cloud-line text-3xl text-muted-foreground mb-2 block mx-auto"></i>
-                            <p className="text-muted-foreground mb-2">Drag and drop an image, or click to upload</p>
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              onClick={() => fileInputRef.current?.click()}
-                            >
-                              Select Image
-                            </Button>
-                          </>
-                        )}
-                        <input 
-                          ref={fileInputRef}
-                          id="upload-image" 
-                          type="file" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handleFileChange}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <Label htmlFor="edit-prompt" className="mb-2 block">
-                        Describe how to transform the image 
-                        <span className="text-muted-foreground ml-1">
-                          {styleTheme === "none" ? "(required)" : "(optional if style is selected)"}
-                        </span>
-                      </Label>
-                      <Textarea
-                        id="edit-prompt"
-                        placeholder="Make it look like it's underwater with fish swimming around"
-                        className="min-h-24 bg-background/50"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        required={styleTheme === "none"}
-                      />
-                    </div>
-                    
-                    <div className="mb-6">
-                      <Label htmlFor="style-theme-edit" className="mb-2 block">
-                        Style Theme
-                      </Label>
-                      <Select value={styleTheme} onValueChange={setStyleTheme}>
-                        <SelectTrigger id="style-theme-edit">
-                          <SelectValue placeholder="Select a style theme" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {styleThemes.map((theme) => (
-                            <SelectItem key={theme.id} value={theme.id}>
-                              {theme.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <div className="flex justify-between mb-2">
-                        <Label htmlFor="mask-strength">Transformation Strength: {maskStrength}%</Label>
-                      </div>
-                      <Slider
-                        id="mask-strength"
-                        min={1}
-                        max={100}
-                        step={1}
-                        value={[maskStrength]}
-                        onValueChange={(value) => setMaskStrength(value[0])}
-                      />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Higher values apply more of your prompt to the image
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-gradient-to-r from-[#8b5cf6] to-[#c026d3] hover:opacity-90 transition-opacity"
-                      disabled={activeMutation.isPending || (!prompt.trim() && styleTheme === "none") || !imageFile}
-                    >
-                      {activeMutation.isPending ? (
-                        <>
-                          <span className="animate-pulse">Transforming...</span>
-                          <span className="cryptic-symbols ml-2 opacity-50"></span>
-                        </>
-                      ) : "Transform Image"}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </Card>
-          </div>
-          
-          {/* Result Section */}
-          <div className="w-full lg:w-1/2">
-            <h2 className="font-display text-2xl md:text-3xl font-bold mb-6">
-              <span className="cryptic-symbols mr-2 opacity-50"></span>
-              Your <span className="text-gradient">Creations</span>
-            </h2>
-            
-            <Card className="glass h-[30rem] flex items-center justify-center overflow-hidden relative">
-              <CardContent className="p-0 w-full h-full flex items-center justify-center">
-                {activeMutation.isPending ? (
-                  <div className="text-center p-8">
-                    <div className="w-24 h-24 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-muted-foreground">Creating your image...</p>
-                  </div>
-                ) : activeMutation.isError ? (
-                  <div className="text-center p-8 max-w-md mx-auto">
-                    <i className="ri-error-warning-line text-5xl text-red-500 mb-4 block"></i>
-                    <p className="text-red-500 mb-2 font-medium">Something went wrong</p>
-                    <p className="text-muted-foreground text-sm">
-                      {activeMutation.error instanceof Error ? activeMutation.error.message : "Unknown error"}
-                    </p>
-                  </div>
-                ) : (generateMutation.data || editImageMutation.data) ? (
-                  <motion.div 
-                    className="relative w-full h-full bg-black/20 backdrop-blur-sm flex items-center justify-center p-4"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.8 }}
+    <section id="image-generator" className="py-8 bg-white">
+      <div className="container px-6 mx-auto max-w-4xl">
+        {/* Simple Header */}
+        <div className="text-center mb-6">
+        </div>
+        
+        {/* Main Card */}
+        <Card className="no-ify-card">
+          <div className="p-8">
+            {/* Tab Navigation */}
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "generate" | "edit")}>
+              <div className="mb-8">
+                <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 bg-gray-100">
+                  <TabsTrigger 
+                    value="generate"
+                    className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
                   >
+                    Generate
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="edit"
+                    className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+                  >
+                    Transform
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <TabsContent value="generate" className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Prompt Section */}
+                  <div className="space-y-3">
+                    <Label htmlFor="prompt" className="text-lg font-medium text-gray-900">
+                      What should we transform?
+                    </Label>
+                    <Textarea
+                      id="prompt"
+                      placeholder="A cat wearing sunglasses"
+                      className="min-h-32 bg-white border-gray-300 focus:border-gray-500"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  {/* Generate Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 no-ify-rounded"
+                    disabled={activeMutation.isPending || !prompt.trim()}
+                  >
+                    {activeMutation.isPending ? (
+                      <span>Converting...</span>
+                    ) : (
+                      <span>nofacify</span>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="edit" className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Upload Section */}
+                  <div className="space-y-3">
+                    <Label htmlFor="upload-image" className="text-lg font-medium text-gray-900">
+                      Upload your image
+                    </Label>
+                    
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        dragActive 
+                          ? 'border-gray-400 bg-gray-50' 
+                          : imagePreview 
+                            ? 'border-gray-300 bg-gray-50' 
+                            : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      {imagePreview ? (
+                        <div className="relative">
+                          <img 
+                            src={imagePreview} 
+                            alt="Source" 
+                            className="max-h-64 mx-auto rounded-lg"
+                          />
+                          <button 
+                            type="button"
+                            className="absolute top-2 right-2 w-8 h-8 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-900"
+                            onClick={() => {
+                              if (imagePreview) {
+                                URL.revokeObjectURL(imagePreview);
+                              }
+                              setImageFile(null);
+                              setImagePreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                          </svg>
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Drop your image here</h3>
+                          <p className="text-gray-500 mb-4">or click to browse files</p>
+                          <button 
+                            type="button" 
+                            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            Choose Image
+                          </button>
+                          <p className="text-xs text-gray-400 mt-4">
+                            Supports PNG, JPG, WEBP • Max 4MB
+                          </p>
+                        </>
+                      )}
+                      <input 
+                        ref={fileInputRef}
+                        id="upload-image" 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleFileChange}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Transform Button */}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 no-ify-rounded"
+                    disabled={activeMutation.isPending || !imageFile}
+                  >
+                    {activeMutation.isPending ? (
+                      <span>Converting...</span>
+                    ) : (
+                      <span>nofacify</span>
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </Card>
+        
+        {/* Result Display */}
+        <div className="mt-8">
+          <Card className="no-ify-card">
+            <CardContent className="p-8">
+              {activeMutation.isPending ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 border-4 border-gray-300 border-t-gray-600 rounded-full custom-spinner mx-auto mb-4"></div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">nofacifying</h4>
+                  <p className="text-gray-600">This might take a moment, please wait...</p>
+                </div>
+              ) : activeMutation.isError ? (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-medium text-red-600 mb-2">Something went wrong</h4>
+                  <p className="text-gray-600">
+                    {activeMutation.error instanceof Error ? activeMutation.error.message : "An unexpected error occurred"}
+                  </p>
+                </div>
+              ) : (generateMutation.data || editImageMutation.data) ? (
+                <div className="text-center">
+                  <div className="inline-block no-ify-rounded overflow-hidden bg-gray-50 p-4">
                     <img 
                       src={generateMutation.data?.url || editImageMutation.data?.url} 
-                      alt={generateMutation.data?.prompt || "Edited image"}
-                      className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
-                      onError={(e) => {
-                        console.error("Result image failed to load");
-                        const target = e.target as HTMLImageElement;
-                        target.onerror = null; // Prevent infinite loop
-                        target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZWVlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM5OTk5OTkiPkltYWdlIGVycm9yPC90ZXh0Pjwvc3ZnPg==";
-                      }}
+                      alt={generateMutation.data?.prompt || "Nofacified image"}
+                      className="max-w-full max-h-96 no-ify-rounded"
                     />
-                    <div className="absolute bottom-4 right-4 flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="bg-[#334155] hover:bg-[#475569] text-white"
-                        onClick={() => downloadImage(
-                          generateMutation.data?.url || editImageMutation.data?.url, 
-                          `memex-${generateMutation.data?.id || editImageMutation.data?.id || 'edit'}`
-                        )}
-                      >
-                        <i className="ri-download-line mr-1"></i> Save
-                      </Button>
-                      <Button 
-                        size="sm"
-                        className="bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white"
-                        onClick={() => {
-                          const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
-                          const promptText = generateMutation.data?.prompt || prompt;
-                          const tweetText = `Check out this AI image I created: "${promptText.substring(0, 50)}${promptText.length > 50 ? '...' : ''}"`;
-                          const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(window.location.href)}`;
-                          window.open(tweetUrl, '_blank', 'noopener,noreferrer,width=550,height=420');
-                        }}
-                      >
-                        <i className="ri-twitter-x-fill mr-1"></i> Share
-                      </Button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <div className="text-center p-8 max-w-md mx-auto">
-                    <i className="ri-image-line text-5xl text-muted-foreground/30 mb-4 block"></i>
-                    <p className="text-muted-foreground">
-                      Your creation will appear here...
-                    </p>
-                    <p className="text-sm text-muted-foreground/70 mt-2">
-                      {activeTab === "generate" 
-                        ? "Describe what you want to create in detail for best results."
-                        : "Upload an image and describe how you want to transform it."
-                      }
-                    </p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  
+                  {/* Download Button */}
+                  <div className="mt-6">
+                    <button 
+                      className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 no-ify-rounded"
+                      onClick={async () => {
+                        try {
+                          const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
+                          const imageId = generateMutation.data?.id || editImageMutation.data?.id || 'nofacified';
+                          
+                          if (!imageUrl) {
+                            toast.error({
+                              title: "Download failed",
+                              description: "No image URL available for download"
+                            });
+                            return;
+                          }
+                          
+                          await downloadImage(imageUrl, `nofacify-${imageId}`);
+                          
+                          toast.success({
+                            title: "Download successful!",
+                            description: "Your nofacified image has been saved to your device"
+                          });
+                        } catch (error) {
+                          toast.error({
+                            title: "Download failed",
+                            description: error instanceof Error ? error.message : "Failed to download image"
+                          });
+                        }
+                      }}
+                    >
+                      Download
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-16">
+                  <div className="w-24 h-24 bg-gray-400 rounded-full mx-auto mb-6"></div>
+                  <h4 className="text-xl font-medium text-gray-900 mb-2">Ready to create?</h4>
+                  <p className="text-gray-600 max-w-lg mx-auto">
+                    {activeTab === "generate" 
+                      ? "Describe what you'd like to nofacify."
+                      : "Upload an image and we'll nofacify it."
+                    }
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>
   );
-} 
+}
