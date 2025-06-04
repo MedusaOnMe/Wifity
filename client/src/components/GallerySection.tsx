@@ -67,11 +67,8 @@ export default function GallerySection() {
       <div className="container px-6 mx-auto relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-display gradient-text mb-4">
-            🎨 Finger Art Gallery
+            Gallery
           </h2>
-          <p className="text-lg text-hsl(var(--muted-foreground)) max-w-2xl mx-auto">
-            Discover amazing finger art creations from our community
-          </p>
         </div>
       
         {isLoading ? (
@@ -97,12 +94,12 @@ export default function GallerySection() {
         ) : images && images.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {images.map((image: Image) => (
-              <div key={image.id} className="ditofy-card p-0 overflow-hidden cursor-pointer interactive-hover finger-shadow" onClick={() => handleImageClick(image)}>
+              <div key={image.id} className="ditofy-card p-0 overflow-hidden cursor-pointer" onClick={() => handleImageClick(image)}>
                 <div className="aspect-square overflow-hidden finger-gradient p-2">
                   <img 
                     src={image.url} 
-                    alt="finger art creation" 
-                    className="w-full h-full object-cover ditofy-rounded hover:scale-105 transition-transform duration-300"
+                    alt="ditofied image" 
+                    className="w-full h-full object-cover ditofy-rounded"
                     loading="lazy" 
                   />
                 </div>
@@ -111,12 +108,12 @@ export default function GallerySection() {
           </div>
         ) : (
           <div className="text-center p-8 max-w-md mx-auto ditofy-card">
-            <div className="text-8xl mb-6 animate-pulse">🖐️</div>
+            <div className="text-8xl mb-6">🖐️</div>
             <p className="text-hsl(var(--foreground)) mb-2 font-display text-xl">
-              No finger art yet!
+              No images yet!
             </p>
             <p className="text-hsl(var(--muted-foreground))">
-              Create some amazing finger art to see them here!
+              Ditofy some images to see them here!
             </p>
           </div>
         )}
@@ -137,14 +134,14 @@ export default function GallerySection() {
               <div className="overflow-hidden max-h-[60vh] finger-gradient p-4">
                 <img 
                   src={selectedImage.url} 
-                  alt="finger art creation" 
+                  alt="ditofied image" 
                   className="w-full object-contain ditofy-rounded finger-shadow"
                 />
               </div>
               
               <div className="p-8">
                 <h3 className="text-2xl font-display gradient-text mb-2">
-                  🎨 Finger Art Creation
+                  Ditofied Image
                 </h3>
                 <p className="text-sm text-hsl(var(--muted-foreground)) mb-6 font-mono">
                   Created: {new Date(selectedImage.timestamp).toLocaleString()}
@@ -152,10 +149,10 @@ export default function GallerySection() {
                 
                 <div className="flex gap-4">
                   <Button 
-                    className="btn-accent interactive-hover"
-                    onClick={() => downloadImage(selectedImage.url, `ditofy-${selectedImage.id.split('/').pop() || 'finger-art'}`)}
+                    className="btn-accent"
+                    onClick={() => downloadImage(selectedImage.url, `ditofy-${selectedImage.id.split('/').pop() || 'ditofied'}`)}
                   >
-                    📥 Download Finger Art
+                    Download
                   </Button>
                 </div>
               </div>

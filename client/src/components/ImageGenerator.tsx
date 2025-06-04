@@ -373,13 +373,13 @@ export default function ImageGenerator() {
                     value="generate"
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white font-medium"
                   >
-                    🎨 Generate
+                    Generate
                   </TabsTrigger>
                   <TabsTrigger 
                     value="edit"
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white font-medium"
                   >
-                    🖼️ Transform
+                    Transform
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -389,11 +389,11 @@ export default function ImageGenerator() {
                   {/* Prompt Section */}
                   <div className="space-y-3">
                     <Label htmlFor="prompt" className="text-lg font-display gradient-text">
-                      🎭 What character should we turn into finger art?
+                      Describe your image
                     </Label>
                     <Textarea
                       id="prompt"
-                      placeholder="A cute cat wearing sunglasses, Pikachu, Mario, or describe any character..."
+                      placeholder="Describe what you want to ditofy..."
                       className="min-h-32 input-modern text-base"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
@@ -410,10 +410,10 @@ export default function ImageGenerator() {
                     {activeMutation.isPending ? (
                       <span className="flex items-center gap-2">
                         <div className="w-5 h-5 custom-spinner"></div>
-                        Creating Finger Art...
+                        Ditofying...
                       </span>
                     ) : (
-                      <span>✨ Ditofy It!</span>
+                      <span>Ditofy</span>
                     )}
                   </Button>
                 </form>
@@ -424,7 +424,7 @@ export default function ImageGenerator() {
                   {/* Upload Section */}
                   <div className="space-y-3">
                     <Label htmlFor="upload-image" className="text-lg font-display gradient-text">
-                      🖼️ Upload your image to transform
+                      Upload your image
                     </Label>
                     
                     <div 
@@ -463,19 +463,16 @@ export default function ImageGenerator() {
                         </div>
                       ) : (
                         <>
-                          <div className="text-6xl mb-4 animate-pulse">🖼️</div>
-                          <h3 className="text-lg font-display gradient-text mb-2">Drop your image here</h3>
-                          <p className="text-hsl(var(--muted-foreground)) mb-4">or click to browse files</p>
+                          <div className="text-6xl mb-4">🖼️</div>
+                          <h3 className="text-lg font-display gradient-text mb-2">Drop image here</h3>
+                          <p className="text-hsl(var(--muted-foreground)) mb-4">or click to browse</p>
                           <button 
                             type="button" 
-                            className="btn-accent interactive-hover"
+                            className="btn-accent"
                             onClick={() => fileInputRef.current?.click()}
                           >
                             Choose Image
                           </button>
-                          <p className="text-xs text-hsl(var(--muted-foreground)) mt-4 font-mono">
-                            Supports PNG, JPG, WEBP • Max 4MB
-                          </p>
                         </>
                       )}
                       <input 
@@ -498,10 +495,10 @@ export default function ImageGenerator() {
                     {activeMutation.isPending ? (
                       <span className="flex items-center gap-2">
                         <div className="w-5 h-5 custom-spinner"></div>
-                        Creating Finger Art...
+                        Ditofying...
                       </span>
                     ) : (
-                      <span>🎨 Transform to Finger Art!</span>
+                      <span>Ditofy</span>
                     )}
                   </Button>
                 </form>
@@ -517,8 +514,8 @@ export default function ImageGenerator() {
               {activeMutation.isPending ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 custom-spinner mx-auto mb-4"></div>
-                  <h4 className="text-lg font-display gradient-text mb-2">Creating Finger Art Magic ✨</h4>
-                  <p className="text-hsl(var(--muted-foreground))">Transforming your character into adorable finger art...</p>
+                  <h4 className="text-lg font-display gradient-text mb-2">Ditofying...</h4>
+                  <p className="text-hsl(var(--muted-foreground))">Processing your image...</p>
                 </div>
               ) : activeMutation.isError ? (
                 <div className="text-center py-16">
@@ -533,7 +530,7 @@ export default function ImageGenerator() {
                   <div className="inline-block ditofy-rounded overflow-hidden finger-gradient p-6 finger-shadow">
                     <img 
                       src={generateMutation.data?.url || editImageMutation.data?.url} 
-                      alt={generateMutation.data?.prompt || "Finger art creation"}
+                      alt={generateMutation.data?.prompt || "Ditofied image"}
                       className="max-w-full max-h-96 ditofy-rounded"
                     />
                   </div>
@@ -541,7 +538,7 @@ export default function ImageGenerator() {
                   {/* Download Button */}
                   <div className="mt-6">
                     <button 
-                      className="btn-accent interactive-hover"
+                      className="btn-accent"
                       onClick={async () => {
                         try {
                           const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
@@ -558,8 +555,8 @@ export default function ImageGenerator() {
                           await downloadImage(imageUrl, `ditofy-${imageId}`);
                           
                           toast.success({
-                            title: "🎉 Download successful!",
-                            description: "Your finger art masterpiece has been saved to your device"
+                            title: "Download successful!",
+                            description: "Your ditofied image has been saved"
                           });
                         } catch (error) {
                           toast.error({
@@ -569,18 +566,18 @@ export default function ImageGenerator() {
                         }
                       }}
                     >
-                      📥 Download Finger Art
+                      Download
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="text-8xl mb-6 animate-pulse">🖐️</div>
-                  <h4 className="text-xl font-display gradient-text mb-2">Ready to create finger art?</h4>
+                  <div className="text-8xl mb-6">🖐️</div>
+                  <h4 className="text-xl font-display gradient-text mb-2">Ready to ditofy?</h4>
                   <p className="text-hsl(var(--muted-foreground)) max-w-lg mx-auto">
                     {activeTab === "generate" 
-                      ? "Describe any character you'd like to transform into adorable finger art!"
-                      : "Upload an image and we'll turn it into whimsical finger puppet art!"
+                      ? "Describe what you want to ditofy"
+                      : "Upload an image to ditofy"
                     }
                   </p>
                 </div>

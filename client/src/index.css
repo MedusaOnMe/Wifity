@@ -208,14 +208,9 @@ body {
     border: 1px solid hsl(var(--border) / 0.2);
   }
 
-  /* Animated background */
+  /* Static background */
   .animated-bg {
-    background: 
-      radial-gradient(600px at 50% 50%, rgba(102, 126, 234, 0.15) 0%, transparent 50%),
-      radial-gradient(800px at 80% 10%, rgba(240, 147, 251, 0.15) 0%, transparent 50%),
-      radial-gradient(400px at 20% 80%, rgba(79, 172, 254, 0.15) 0%, transparent 50%),
-      hsl(var(--background));
-    animation: float 20s ease-in-out infinite;
+    background: hsl(var(--background));
   }
 
   /* Finger art specific styles */
@@ -242,13 +237,10 @@ body {
 
 @keyframes float {
   0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
+    transform: translate(0, 0);
   }
-  33% {
-    transform: translate(30px, -30px) rotate(120deg);
-  }
-  66% {
-    transform: translate(-20px, 20px) rotate(240deg);
+  50% {
+    transform: translate(0, -10px);
   }
 }
 
@@ -277,18 +269,12 @@ body {
 }
 
 .pulse-animation {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: none;
 }
 
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
+  background: none;
+  animation: none;
 }
 
 /* Typography */
@@ -334,12 +320,12 @@ body {
 
 /* Interactive elements */
 .interactive-hover {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
 }
 
 .interactive-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Background patterns */

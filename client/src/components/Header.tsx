@@ -11,7 +11,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="container mx-auto px-6">
         <div className="flex h-20 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 interactive-hover">
+          <Link href="/" className="flex items-center gap-3">
             <div className="w-12 h-12 finger-gradient rounded-full flex items-center justify-center finger-shadow">
               <span className="text-2xl">🖐️</span>
             </div>
@@ -26,13 +26,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
               href="/" 
               className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
             >
-              🎨 Create
+              Create
             </Link>
             <Link 
               href="/gallery" 
               className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
             >
-              🖼️ Gallery
+              Gallery
             </Link>
             <a 
               href="https://x.com/i/communities/1929531995563884891" 
