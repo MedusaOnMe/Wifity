@@ -72,8 +72,8 @@ export default function ImageGenerator() {
     mutationFn: async (data: GenerateImageParams) => {
       setIsUpdating(true);
       
-      // Convert to solid gray silhouette
-      data.prompt = `Convert the following to a single, completely solid gray (#AAB8C2) silhouette on very light gray (#F7F9FA) background. Create one unified filled shape that captures only the outer outline/form. Remove ALL internal details, textures, features, and complexity - result must be entirely solid gray with no gaps, holes, or internal elements. Style should be minimalist, flat, and square format: ${data.prompt}`;
+      // Convert to finger art
+      data.prompt = `Take the input image and transform its main character into a cartoon-style drawing painted onto a human finger. The finger should be photographed in high-resolution, with visible fingerprint texture. Adapt the subject's key features (like hairstyle, color, costume, or iconic accessories) to fit the rounded shape of the fingertip while keeping it cute, simple, and expressive — like a finger puppet. Background should be plain or themed based on the original character's environment. The result should look like a whimsical, hand-drawn finger art tribute — not a real person, but a stylized cartoon drawn on a finger: ${data.prompt}`;
       
       const response = await fetch("/api/images/generate", {
         method: "POST",
@@ -132,7 +132,7 @@ export default function ImageGenerator() {
       formData.append("image", fileCopy);
       
       // Automatic conversion prompt - no user input needed
-      const autoPrompt = "Transform this image into a single, completely solid gray (#AAB8C2) silhouette on very light gray (#F7F9FA) background. Create one unified filled shape that captures only the outer outline/form of the original subject. Remove ALL internal details, textures, gradients, features, and complexity - result must be entirely solid gray with no gaps, holes, or internal elements. Style should be minimalist, flat, and square format.";
+      const autoPrompt = "Take the input image and transform its main character into a cartoon-style drawing painted onto a human finger. The finger should be photographed in high-resolution, with visible fingerprint texture. Adapt the subject's key features (like hairstyle, color, costume, or iconic accessories) to fit the rounded shape of the fingertip while keeping it cute, simple, and expressive — like a finger puppet. Background should be plain or themed based on the original character's environment. The result should look like a whimsical, hand-drawn finger art tribute — not a real person, but a stylized cartoon drawn on a finger.";
       
       formData.append("prompt", autoPrompt);
       formData.append("mask_strength", maskStrength.toString());
@@ -195,7 +195,7 @@ export default function ImageGenerator() {
           const stableUrl = URL.createObjectURL(imageBlob);
           
           try {
-            await uploadImageToFirebase(stableUrl, "nofacified");
+            await uploadImageToFirebase(stableUrl, "ditofied");
           } finally {
             URL.revokeObjectURL(stableUrl);
           }
@@ -356,30 +356,30 @@ export default function ImageGenerator() {
   const activeMutation = activeTab === "generate" ? generateMutation : editImageMutation;
 
   return (
-    <section id="image-generator" className="py-8 bg-white">
+    <section id="image-generator" className="py-16 relative">
       <div className="container px-6 mx-auto max-w-4xl">
         {/* Simple Header */}
         <div className="text-center mb-6">
         </div>
         
         {/* Main Card */}
-        <Card className="no-ify-card">
+        <div className="ditofy-card">
           <div className="p-8">
             {/* Tab Navigation */}
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "generate" | "edit")}>
               <div className="mb-8">
-                <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 bg-gray-100">
+                <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 glass">
                   <TabsTrigger 
                     value="generate"
-                    className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white font-medium"
                   >
-                    Generate
+                    🎨 Generate
                   </TabsTrigger>
                   <TabsTrigger 
                     value="edit"
-                    className="data-[state=active]:bg-white data-[state=active]:text-gray-900"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white font-medium"
                   >
-                    Transform
+                    🖼️ Transform
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -388,13 +388,13 @@ export default function ImageGenerator() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Prompt Section */}
                   <div className="space-y-3">
-                    <Label htmlFor="prompt" className="text-lg font-medium text-gray-900">
-                      What should we transform?
+                    <Label htmlFor="prompt" className="text-lg font-display gradient-text">
+                      🎭 What character should we turn into finger art?
                     </Label>
                     <Textarea
                       id="prompt"
-                      placeholder="A cat wearing sunglasses"
-                      className="min-h-32 bg-white border-gray-300 focus:border-gray-500"
+                      placeholder="A cute cat wearing sunglasses, Pikachu, Mario, or describe any character..."
+                      className="min-h-32 input-modern text-base"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       required
@@ -404,13 +404,16 @@ export default function ImageGenerator() {
                   {/* Generate Button */}
                   <Button 
                     type="submit" 
-                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 no-ify-rounded"
+                    className="w-full btn-primary text-lg font-display"
                     disabled={activeMutation.isPending || !prompt.trim()}
                   >
                     {activeMutation.isPending ? (
-                      <span>Converting...</span>
+                      <span className="flex items-center gap-2">
+                        <div className="w-5 h-5 custom-spinner"></div>
+                        Creating Finger Art...
+                      </span>
                     ) : (
-                      <span>nofacify</span>
+                      <span>✨ Ditofy It!</span>
                     )}
                   </Button>
                 </form>
@@ -420,17 +423,17 @@ export default function ImageGenerator() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Upload Section */}
                   <div className="space-y-3">
-                    <Label htmlFor="upload-image" className="text-lg font-medium text-gray-900">
-                      Upload your image
+                    <Label htmlFor="upload-image" className="text-lg font-display gradient-text">
+                      🖼️ Upload your image to transform
                     </Label>
                     
                     <div 
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                      className={`border-2 border-dashed ditofy-rounded p-8 text-center transition-all duration-300 ${
                         dragActive 
-                          ? 'border-gray-400 bg-gray-50' 
+                          ? 'border-purple-400 glass shimmer' 
                           : imagePreview 
-                            ? 'border-gray-300 bg-gray-50' 
-                            : 'border-gray-300 hover:border-gray-400'
+                            ? 'border-green-400 glass' 
+                            : 'border-hsl(var(--border)) glass hover:border-purple-400'
                       }`}
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
@@ -441,11 +444,11 @@ export default function ImageGenerator() {
                           <img 
                             src={imagePreview} 
                             alt="Source" 
-                            className="max-h-64 mx-auto rounded-lg"
+                            className="max-h-64 mx-auto ditofy-rounded finger-shadow"
                           />
                           <button 
                             type="button"
-                            className="absolute top-2 right-2 w-8 h-8 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-900"
+                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
                             onClick={() => {
                               if (imagePreview) {
                                 URL.revokeObjectURL(imagePreview);
@@ -460,19 +463,17 @@ export default function ImageGenerator() {
                         </div>
                       ) : (
                         <>
-                          <svg className="w-12 h-12 text-gray-400 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                          </svg>
-                          <h3 className="text-lg font-medium text-gray-900 mb-2">Drop your image here</h3>
-                          <p className="text-gray-500 mb-4">or click to browse files</p>
+                          <div className="text-6xl mb-4 animate-pulse">🖼️</div>
+                          <h3 className="text-lg font-display gradient-text mb-2">Drop your image here</h3>
+                          <p className="text-hsl(var(--muted-foreground)) mb-4">or click to browse files</p>
                           <button 
                             type="button" 
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg"
+                            className="btn-accent interactive-hover"
                             onClick={() => fileInputRef.current?.click()}
                           >
                             Choose Image
                           </button>
-                          <p className="text-xs text-gray-400 mt-4">
+                          <p className="text-xs text-hsl(var(--muted-foreground)) mt-4 font-mono">
                             Supports PNG, JPG, WEBP • Max 4MB
                           </p>
                         </>
@@ -491,61 +492,60 @@ export default function ImageGenerator() {
                   {/* Transform Button */}
                   <Button 
                     type="submit" 
-                    className="w-full bg-gray-500 hover:bg-gray-600 text-white py-3 no-ify-rounded"
+                    className="w-full btn-secondary text-lg font-display"
                     disabled={activeMutation.isPending || !imageFile}
                   >
                     {activeMutation.isPending ? (
-                      <span>Converting...</span>
+                      <span className="flex items-center gap-2">
+                        <div className="w-5 h-5 custom-spinner"></div>
+                        Creating Finger Art...
+                      </span>
                     ) : (
-                      <span>nofacify</span>
+                      <span>🎨 Transform to Finger Art!</span>
                     )}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           </div>
-        </Card>
+        </div>
         
         {/* Result Display */}
         <div className="mt-8">
-          <Card className="no-ify-card">
-            <CardContent className="p-8">
+          <div className="ditofy-card">
+            <div className="p-8">
               {activeMutation.isPending ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 border-4 border-gray-300 border-t-gray-600 rounded-full custom-spinner mx-auto mb-4"></div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">nofacifying</h4>
-                  <p className="text-gray-600">This might take a moment, please wait...</p>
+                  <div className="w-16 h-16 custom-spinner mx-auto mb-4"></div>
+                  <h4 className="text-lg font-display gradient-text mb-2">Creating Finger Art Magic ✨</h4>
+                  <p className="text-hsl(var(--muted-foreground))">Transforming your character into adorable finger art...</p>
                 </div>
               ) : activeMutation.isError ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </div>
-                  <h4 className="text-lg font-medium text-red-600 mb-2">Something went wrong</h4>
-                  <p className="text-gray-600">
+                  <div className="text-6xl mb-4">💔</div>
+                  <h4 className="text-lg font-display text-red-400 mb-2">Oops! Something went wrong</h4>
+                  <p className="text-hsl(var(--muted-foreground))">
                     {activeMutation.error instanceof Error ? activeMutation.error.message : "An unexpected error occurred"}
                   </p>
                 </div>
               ) : (generateMutation.data || editImageMutation.data) ? (
                 <div className="text-center">
-                  <div className="inline-block no-ify-rounded overflow-hidden bg-gray-50 p-4">
+                  <div className="inline-block ditofy-rounded overflow-hidden finger-gradient p-6 finger-shadow">
                     <img 
                       src={generateMutation.data?.url || editImageMutation.data?.url} 
-                      alt={generateMutation.data?.prompt || "Nofacified image"}
-                      className="max-w-full max-h-96 no-ify-rounded"
+                      alt={generateMutation.data?.prompt || "Finger art creation"}
+                      className="max-w-full max-h-96 ditofy-rounded"
                     />
                   </div>
                   
                   {/* Download Button */}
                   <div className="mt-6">
                     <button 
-                      className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 no-ify-rounded"
+                      className="btn-accent interactive-hover"
                       onClick={async () => {
                         try {
                           const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
-                          const imageId = generateMutation.data?.id || editImageMutation.data?.id || 'nofacified';
+                          const imageId = generateMutation.data?.id || editImageMutation.data?.id || 'ditofied';
                           
                           if (!imageUrl) {
                             toast.error({
@@ -555,11 +555,11 @@ export default function ImageGenerator() {
                             return;
                           }
                           
-                          await downloadImage(imageUrl, `nofacify-${imageId}`);
+                          await downloadImage(imageUrl, `ditofy-${imageId}`);
                           
                           toast.success({
-                            title: "Download successful!",
-                            description: "Your nofacified image has been saved to your device"
+                            title: "🎉 Download successful!",
+                            description: "Your finger art masterpiece has been saved to your device"
                           });
                         } catch (error) {
                           toast.error({
@@ -569,24 +569,24 @@ export default function ImageGenerator() {
                         }
                       }}
                     >
-                      Download
+                      📥 Download Finger Art
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="w-24 h-24 bg-gray-400 rounded-full mx-auto mb-6"></div>
-                  <h4 className="text-xl font-medium text-gray-900 mb-2">Ready to create?</h4>
-                  <p className="text-gray-600 max-w-lg mx-auto">
+                  <div className="text-8xl mb-6 animate-pulse">🖐️</div>
+                  <h4 className="text-xl font-display gradient-text mb-2">Ready to create finger art?</h4>
+                  <p className="text-hsl(var(--muted-foreground)) max-w-lg mx-auto">
                     {activeTab === "generate" 
-                      ? "Describe what you'd like to nofacify."
-                      : "Upload an image and we'll nofacify it."
+                      ? "Describe any character you'd like to transform into adorable finger art!"
+                      : "Upload an image and we'll turn it into whimsical finger puppet art!"
                     }
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </section>

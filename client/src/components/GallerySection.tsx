@@ -63,66 +63,60 @@ export default function GallerySection() {
   };
 
   return (
-    <section id="gallery" className="py-16 bg-gray-50">
-      <div className="container px-4 mx-auto">
-        <h2 className="text-2xl md:text-3xl font-bold mb-8 text-gray-800">
-          Gallery
-        </h2>
+    <section id="gallery" className="py-16 relative dot-pattern">
+      <div className="container px-6 mx-auto relative z-10">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-display gradient-text mb-4">
+            🎨 Finger Art Gallery
+          </h2>
+          <p className="text-lg text-hsl(var(--muted-foreground)) max-w-2xl mx-auto">
+            Discover amazing finger art creations from our community
+          </p>
+        </div>
       
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {[...Array(8)].map((_, index) => (
-              <Card key={index} className="bg-white border border-gray-200 overflow-hidden">
-                <CardContent className="p-0">
-                  <Skeleton className="w-full aspect-square bg-gray-200" />
-                  <div className="p-3">
-                    <Skeleton className="h-4 w-full mb-2 bg-gray-200" />
-                    <Skeleton className="h-4 w-3/4 bg-gray-200" />
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={index} className="ditofy-card p-0 overflow-hidden interactive-hover">
+                <Skeleton className="w-full aspect-square" style={{background: 'hsl(var(--muted))'}} />
+                <div className="p-4">
+                  <Skeleton className="h-4 w-full mb-2" style={{background: 'hsl(var(--muted))'}} />
+                  <Skeleton className="h-4 w-3/4" style={{background: 'hsl(var(--muted))'}} />
+                </div>
+              </div>
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center p-8 max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg">
-            <svg className="w-12 h-12 text-red-500 mb-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-red-600 mb-2 font-medium">Failed to load gallery</p>
-            <p className="text-gray-600 text-sm">
+          <div className="text-center p-8 max-w-md mx-auto ditofy-card">
+            <div className="text-6xl mb-4">💔</div>
+            <p className="text-red-400 mb-2 font-display text-lg">Failed to load gallery</p>
+            <p className="text-hsl(var(--muted-foreground)) text-sm">
               {error ? error.message : "Unknown error"}
             </p>
           </div>
         ) : images && images.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {images.map((image: Image) => (
-              <div key={image.id}>
-                <Card 
-                  className="bg-white border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow rounded-2xl"
-                  onClick={() => handleImageClick(image)}
-                >
-                  <CardContent className="p-0">
-                    <div className="aspect-square overflow-hidden bg-gray-100">
-                      <img 
-                        src={image.url} 
-                        alt="nofacified image" 
-                        className="w-full h-full object-cover hover:scale-105 transition-transform"
-                        loading="lazy" 
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+              <div key={image.id} className="ditofy-card p-0 overflow-hidden cursor-pointer interactive-hover finger-shadow" onClick={() => handleImageClick(image)}>
+                <div className="aspect-square overflow-hidden finger-gradient p-2">
+                  <img 
+                    src={image.url} 
+                    alt="finger art creation" 
+                    className="w-full h-full object-cover ditofy-rounded hover:scale-105 transition-transform duration-300"
+                    loading="lazy" 
+                  />
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center p-8 max-w-md mx-auto">
-            <div className="w-16 h-16 bg-gray-300 rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-600 mb-2">
-              No images found in the gallery
+          <div className="text-center p-8 max-w-md mx-auto ditofy-card">
+            <div className="text-8xl mb-6 animate-pulse">🖐️</div>
+            <p className="text-hsl(var(--foreground)) mb-2 font-display text-xl">
+              No finger art yet!
             </p>
-            <p className="text-sm text-gray-500">
-              Create some nofacified images to see them here!
+            <p className="text-hsl(var(--muted-foreground))">
+              Create some amazing finger art to see them here!
             </p>
           </div>
         )}
@@ -130,39 +124,38 @@ export default function GallerySection() {
       
       {/* Image details modal */}
       {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background: 'hsl(var(--background) / 0.8)'}}>
+          <div className="ditofy-card max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="relative">
               <button 
-                className="absolute top-4 right-4 w-8 h-8 bg-gray-800 text-white rounded-full flex items-center justify-center z-10 hover:bg-gray-900"
+                className="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center z-10 hover:bg-red-600 transition-colors"
                 onClick={closeDetails}
               >
                 ×
               </button>
               
-              <div className="overflow-hidden max-h-[50vh] bg-gray-100">
+              <div className="overflow-hidden max-h-[60vh] finger-gradient p-4">
                 <img 
                   src={selectedImage.url} 
-                  alt="nofacified image" 
-                  className="w-full object-contain"
+                  alt="finger art creation" 
+                  className="w-full object-contain ditofy-rounded finger-shadow"
                 />
               </div>
               
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  nofacified Image
+              <div className="p-8">
+                <h3 className="text-2xl font-display gradient-text mb-2">
+                  🎨 Finger Art Creation
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-hsl(var(--muted-foreground)) mb-6 font-mono">
                   Created: {new Date(selectedImage.timestamp).toLocaleString()}
                 </p>
                 
-                <div className="flex space-x-3">
+                <div className="flex gap-4">
                   <Button 
-                    size="sm" 
-                    className="bg-gray-600 hover:bg-gray-700 text-white"
-                    onClick={() => downloadImage(selectedImage.url, `noify-${selectedImage.id.split('/').pop() || 'silhouette'}`)}
+                    className="btn-accent interactive-hover"
+                    onClick={() => downloadImage(selectedImage.url, `ditofy-${selectedImage.id.split('/').pop() || 'finger-art'}`)}
                   >
-                    Download
+                    📥 Download Finger Art
                   </Button>
                 </div>
               </div>
@@ -170,6 +163,12 @@ export default function GallerySection() {
           </div>
         </div>
       )}
+      
+      {/* Background decorations */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-10 right-10 w-40 h-40 rounded-full bg-gradient-to-br from-purple-500/5 to-pink-500/5 blur-3xl"></div>
+        <div className="absolute bottom-20 left-10 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/5 to-cyan-500/5 blur-3xl"></div>
+      </div>
     </section>
   );
 }
