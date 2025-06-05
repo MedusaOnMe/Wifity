@@ -16,7 +16,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               <span className="text-2xl">👥</span>
             </div>
             <span className="font-display text-2xl font-bold gradient-text">
-              IconicDuo
+              Wifify
             </span>
           </Link>
 

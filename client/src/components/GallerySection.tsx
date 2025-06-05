@@ -67,7 +67,7 @@ export default function GallerySection() {
       <div className="container px-6 mx-auto relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-display gradient-text mb-4">
-            IconicDuo Gallery
+            Wifify Gallery
           </h2>
         </div>
       
@@ -98,7 +98,7 @@ export default function GallerySection() {
                 <div className="aspect-square overflow-hidden finger-gradient p-2">
                   <img 
                     src={image.url} 
-                    alt="IconicDuo creation" 
+                    alt="Wifify creation" 
                     className="w-full h-full object-cover iconic-rounded"
                     loading="lazy" 
                   />
@@ -110,10 +110,10 @@ export default function GallerySection() {
           <div className="text-center p-8 max-w-md mx-auto iconic-card">
             <div className="text-8xl mb-6">👥</div>
             <p className="text-hsl(var(--foreground)) mb-2 font-display text-xl">
-              No IconicDuos yet!
+              No Wifify creations yet!
             </p>
             <p className="text-hsl(var(--muted-foreground))">
-              Create some IconicDuos to see them here!
+              Create some Wifify images to see them here!
             </p>
           </div>
         )}
@@ -141,7 +141,7 @@ export default function GallerySection() {
               
               <div className="p-8">
                 <h3 className="text-2xl font-display gradient-text mb-2">
-                  IconicDuo Creation
+                  Wifify Creation
                 </h3>
                 <p className="text-sm text-hsl(var(--muted-foreground)) mb-6 font-mono">
                   Created: {new Date(selectedImage.timestamp).toLocaleString()}
@@ -150,7 +150,7 @@ export default function GallerySection() {
                 <div className="flex gap-4">
                   <Button 
                     className="btn-accent"
-                    onClick={() => downloadImage(selectedImage.url, `iconicduo-${selectedImage.id.split('/').pop() || 'creation'}`)}
+                    onClick={() => downloadImage(selectedImage.url, `wifify-${selectedImage.id.split('/').pop() || 'creation'}`)}
                   >
                     Download
                   </Button>

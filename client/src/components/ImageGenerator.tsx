@@ -572,6 +572,55 @@ export default function ImageGenerator() {
                     </button>
                   </div>
                 </div>
+              ) : currentImage ? (
+                <div className="text-center">
+                  <div className="inline-block rounded-lg overflow-hidden p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 shadow-lg mb-6">
+                    <img 
+                      src={currentImage.url} 
+                      alt="Latest Wifify Creation"
+                      className="max-w-full max-h-96 rounded-lg"
+                    />
+                  </div>
+                  <h4 className="text-xl font-display gradient-text mb-2">Latest Wifify Creation</h4>
+                  <p className="text-muted-foreground max-w-lg mx-auto mb-4">
+                    {currentImage.prompt.length > 100 
+                      ? `${currentImage.prompt.substring(0, 100)}...` 
+                      : currentImage.prompt}
+                  </p>
+                  <div className="mt-4">
+                    <button 
+                      className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all"
+                      onClick={async () => {
+                        try {
+                          const imageUrl = currentImage.url;
+                          const imageId = currentImage.id || 'wifify';
+                          
+                          if (!imageUrl) {
+                            toast.error({
+                              title: "Download failed",
+                              description: "No image URL available for download"
+                            });
+                            return;
+                          }
+                          
+                          await downloadImage(imageUrl, `wifify-${imageId}`);
+                          
+                          toast.success({
+                            title: "Download successful!",
+                            description: "Your latest Wifify has been saved"
+                          });
+                        } catch (error) {
+                          toast.error({
+                            title: "Download failed",
+                            description: error instanceof Error ? error.message : "Failed to download image"
+                          });
+                        }
+                      }}
+                    >
+                      Download Latest
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="text-center py-16">
                   <div className="text-8xl mb-6">🏗️</div>

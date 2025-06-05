@@ -732,7 +732,7 @@ export async function registerRoutes(app: Application) {
         
         // Store image in our database
         const image = await storage.createImage({
-          prompt: `IconicDuo: ${prompt.substring(0, 100)}`,
+          prompt: `Wifify: ${prompt.substring(0, 100)}`,
           url: imageUrl,
           size: "1024x1024",
           userId: null,

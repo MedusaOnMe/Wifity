@@ -15,12 +15,12 @@ export default function HeroSection() {
         <div className="max-w-4xl mx-auto">
           {/* Main title */}
           <h1 className="text-6xl md:text-8xl font-display gradient-text mb-6 tracking-tight">
-            IconicDuo
+            Wifify
           </h1>
 
           {/* Subtitle */}
           <p className="text-2xl md:text-3xl text-hsl(var(--muted-foreground)) mb-8 font-medium">
-            Merge two characters into one
+            Stack your world with AI
           </p>
 
           {/* CTA Buttons */}
@@ -29,7 +29,7 @@ export default function HeroSection() {
               onClick={scrollToGenerator}
               className="btn-primary text-lg px-8 py-4"
             >
-              Create Iconic Duo
+              Create Wifify
             </Button>
             <Button
               onClick={() =>
