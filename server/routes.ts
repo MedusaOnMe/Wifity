@@ -290,6 +290,43 @@ const upload = multer({
   },
 }).single('image');
 
+// Configure multer for multi-image uploads (up to 5 images)
+const uploadMulti = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, '../uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      log(`Upload directory created/verified: ${uploadDir}`);
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+      const filename = `${uniqueSuffix}-${file.originalname}`;
+      log(`Generated filename for upload: ${filename}`);
+      cb(null, filename);
+    },
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    log(`Received file: ${file.originalname}, type: ${file.mimetype}`);
+    if (!file.mimetype.startsWith('image/')) {
+      log(`Rejected file: ${file.originalname} - not an image`);
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+}).fields([
+  { name: 'image0', maxCount: 1 },
+  { name: 'image1', maxCount: 1 },
+  { name: 'image2', maxCount: 1 },
+  { name: 'image3', maxCount: 1 },
+  { name: 'image4', maxCount: 1 }
+]);
+
 // Configure multer for dual image uploads
 const uploadDual = multer({
   storage: multer.diskStorage({
@@ -466,6 +503,160 @@ export async function registerRoutes(app: Application) {
       
       res.status(500).json({ message: 'Failed to generate image' });
     }
+  });
+
+  // Simple text-only generation endpoint
+  app.post('/api/images/generate-text', async (req, res) => {
+    try {
+      const prompt = req.body.prompt;
+      if (!prompt) {
+        return res.status(400).json({ message: 'Prompt is required' });
+      }
+      
+      const modelName = "gpt-image-1";
+      log(`Generating text-only image with prompt: "${prompt.slice(0, 50)}..."`);
+      
+      const requestParams = {
+        model: modelName,
+        prompt,
+        n: 1,
+        size: "1024x1024",
+        quality: "medium"
+      };
+      
+      const response = await generateImage(requestParams);
+      
+      let imageUrl;
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        if ('url' in response.data[0] && response.data[0].url) {
+          imageUrl = response.data[0].url as string;
+        } else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
+          imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
+        }
+      }
+      
+      if (!imageUrl) {
+        throw new Error('No image URL found in OpenAI response');
+      }
+      
+      // Store image in database
+      const image = await storage.createImage({
+        prompt,
+        url: imageUrl,
+        size: "1024x1024",
+        userId: null,
+      });
+      
+      res.json(image);
+    } catch (error: any) {
+      log(`Error generating text-only image: ${error.message}`);
+      
+      if (error.response) {
+        return res.status(error.response.status || 500).json({
+          message: 'OpenAI API error',
+          error: error.response.data
+        });
+      }
+      
+      res.status(500).json({ message: 'Failed to generate image' });
+    }
+  });
+
+  // Endpoint for generating stack with multiple images
+  app.post('/api/images/generate-stack', (req, res) => {
+    uploadMulti(req, res, async (uploadErr) => {
+      const imagePaths: string[] = [];
+      
+      try {
+        if (uploadErr) {
+          return res.status(400).json({ message: uploadErr.message || 'File upload failed' });
+        }
+
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        const prompt = req.body.prompt;
+        
+        if (!prompt) {
+          return res.status(400).json({ message: 'Prompt is required' });
+        }
+
+        // Get all uploaded images
+        const uploadedImages: Buffer[] = [];
+        for (let i = 0; i < 5; i++) {
+          const fieldName = `image${i}`;
+          if (files[fieldName] && files[fieldName][0]) {
+            const imagePath = files[fieldName][0].path;
+            imagePaths.push(imagePath);
+            uploadedImages.push(fs.readFileSync(imagePath));
+          }
+        }
+
+        if (uploadedImages.length === 0) {
+          return res.status(400).json({ message: 'At least one image is required' });
+        }
+
+        log(`Generating stack with ${uploadedImages.length} images and prompt: "${prompt.slice(0, 50)}..."`);
+
+        // Use the simple text generation for now - in a real implementation you'd want to use image editing
+        const requestParams = {
+          model: "gpt-image-1",
+          prompt,
+          n: 1,
+          size: "1024x1024",
+          quality: "medium"
+        };
+        
+        const response = await generateImage(requestParams);
+        
+        let imageUrl;
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          if ('url' in response.data[0] && response.data[0].url) {
+            imageUrl = response.data[0].url as string;
+          } else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
+            imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
+          }
+        }
+        
+        if (!imageUrl) {
+          throw new Error('No image URL found in OpenAI response');
+        }
+        
+        // Store image in database
+        const image = await storage.createImage({
+          prompt: `Wifify Stack: ${prompt.substring(0, 100)}`,
+          url: imageUrl,
+          size: "1024x1024",
+          userId: null,
+        });
+        
+        // Clean up temporary files
+        imagePaths.forEach(path => {
+          try {
+            if (fs.existsSync(path)) fs.unlinkSync(path);
+          } catch (e) {}
+        });
+        
+        res.json(image);
+        
+      } catch (error: any) {
+        log(`Error generating stack: ${error.message}`);
+        
+        // Clean up files
+        imagePaths.forEach(path => {
+          try {
+            if (fs.existsSync(path)) fs.unlinkSync(path);
+          } catch (e) {}
+        });
+        
+        if (error.response) {
+          return res.status(error.response.status || 500).json({
+            message: 'OpenAI API error',
+            error: error.response.data
+          });
+        }
+        
+        res.status(500).json({ message: 'Failed to generate stack' });
+      }
+    });
   });
 
   // Endpoint for combining two images
