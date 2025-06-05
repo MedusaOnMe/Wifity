@@ -75,7 +75,7 @@ export async function combineImages(image1Buffer: Buffer, image2Buffer: Buffer, 
     const randomLocation = locations[Math.floor(Math.random() * locations.length)];
 
     // Enhanced prompt for combining both characters with random location
-    const editPrompt = `Create a photorealistic composite image that seamlessly combines both characters from the input images into one natural scene. Both characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together ${randomLocation}. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
+    const editPrompt = `Create a seamless composite image that naturally integrates both characters from the input images into one cohesive scene. Both characters should be fully integrated into the environment ${randomLocation}, sitting or standing naturally with proper scale, depth, and positioning. Ensure both characters maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics, but adapt them to exist in the same visual reality - no floating, overlaying, or copy-pasting effects. The lighting, shadows, perspective, and depth of field should be consistent across both characters. Make it look like a real photograph where both characters naturally coexist in the same space and time, with proper interaction between the characters and their environment.`;
 
     // Use the edit API with both images
     const imageResponse = await openai.images.edit({
