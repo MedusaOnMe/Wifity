@@ -38,19 +38,26 @@ export async function editImage(params: any) {
   }
 }
 
-// Combine two images using OpenAI
+// Combine two images using OpenAI edit API
 export async function combineImages(image1Buffer: Buffer, image2Buffer: Buffer, prompt: string) {
   try {
-    // Enhanced prompt for better character preservation
-    const enhancedPrompt = `Create a photorealistic composite image that seamlessly combines two distinct characters into one natural scene. The characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together in a realistic setting such as standing side by side, sitting on a bench, in a car, at a diner, or another natural environment. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
+    // Create File objects from the buffers
+    const { toFile } = await import('openai');
+    
+    const image1File = await toFile(image1Buffer, 'image1.jpg', { type: 'image/jpeg' });
+    const image2File = await toFile(image2Buffer, 'image2.jpg', { type: 'image/jpeg' });
 
-    // Generate the combined image using the enhanced prompt
-    const imageResponse = await openai.images.generate({
+    // Enhanced prompt for combining both characters
+    const editPrompt = `Create a photorealistic composite image that seamlessly combines both characters from the input images into one natural scene. Both characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together in a realistic setting such as standing side by side, sitting on a bench, in a car, at a diner, or another natural environment. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
+
+    // Use the edit API with both images
+    const imageResponse = await openai.images.edit({
       model: "gpt-image-1",
-      prompt: enhancedPrompt,
+      image: [image1File, image2File], // Pass both images as an array
+      prompt: editPrompt,
       n: 1,
-      quality: "medium",
-      size: "1024x1024"
+      size: "1024x1024",
+      quality: "medium"
     });
 
     return imageResponse;
