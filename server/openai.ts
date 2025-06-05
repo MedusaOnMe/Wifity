@@ -47,8 +47,35 @@ export async function combineImages(image1Buffer: Buffer, image2Buffer: Buffer, 
     const image1File = await toFile(image1Buffer, 'image1.jpg', { type: 'image/jpeg' });
     const image2File = await toFile(image2Buffer, 'image2.jpg', { type: 'image/jpeg' });
 
-    // Enhanced prompt for combining both characters
-    const editPrompt = `Create a photorealistic composite image that seamlessly combines both characters from the input images into one natural scene. Both characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together in a realistic setting such as standing side by side, sitting on a bench, in a car, at a diner, or another natural environment. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
+    // Random location picker
+    const locations = [
+      'standing side by side on a city street',
+      'sitting together on a park bench',
+      'sitting in a cozy diner booth',
+      'standing together in a modern coffee shop',
+      'sitting in the front seats of a car',
+      'standing together on a beach at sunset',
+      'sitting on a couch in a living room',
+      'standing together in an art gallery',
+      'sitting at a table in a restaurant',
+      'standing together in a bookstore',
+      'sitting on steps outside a building',
+      'standing together in a shopping mall',
+      'sitting on bar stools at a counter',
+      'standing together in a park',
+      'sitting on a train or subway',
+      'standing together at a concert venue',
+      'sitting in a library',
+      'standing together on a rooftop terrace',
+      'sitting in a movie theater',
+      'standing together in a gym or fitness center'
+    ];
+
+    // Randomly select a location
+    const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+
+    // Enhanced prompt for combining both characters with random location
+    const editPrompt = `Create a photorealistic composite image that seamlessly combines both characters from the input images into one natural scene. Both characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together ${randomLocation}. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
 
     // Use the edit API with both images
     const imageResponse = await openai.images.edit({
