@@ -66,14 +66,8 @@ export default function ImageGenerator() {
       
       const formData = new FormData();
       uploadedImages.forEach((file, index) => {
-        formData.append(`image${index + 1}`, file!);
+        formData.append(`image${index}`, file!);
       });
-      
-      // Use custom prompt with wif stacking format
-      const wifPrompt = customPrompt.trim() || "your custom stack here";
-      const fullPrompt = `I want to create a realistic image using the "wif" stacking format. Each word or phrase in the format is an element that should be stacked visually from bottom to top, like a totem. Please generate a high-quality, photorealistic image with these instructions: - Stack each item in the exact order of my prompt - Ensure realistic lighting, shadows, and textures - Keep everything visually connected, no floating items - Use a neutral or photographic background, unless implied otherwise. My wif sequence is: ${wifPrompt}`;
-      
-      formData.append("prompt", fullPrompt);
       
       const response = await fetch("/api/images/generate-stack", {
         method: "POST",
@@ -396,25 +390,6 @@ export default function ImageGenerator() {
               
               <TabsContent value="images" className="space-y-6 mt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-3">
-                    <Label htmlFor="custom-prompt" className="text-lg font-display gradient-text">
-                      Custom Wif Sequence (Optional)
-                    </Label>
-                    <div className="relative">
-                      <textarea
-                        id="custom-prompt"
-                        value={customPrompt}
-                        onChange={(e) => setCustomPrompt(e.target.value)}
-                        placeholder="Enter your wif sequence or leave blank for auto-generation from images"
-                        className="w-full p-4 border border-border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        rows={3}
-                      />
-                      <div className="text-sm text-muted-foreground mt-2">
-                        If left blank, we'll analyze your images to create a sequence
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Upload Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[0, 1, 2, 3, 4].map((index) => (

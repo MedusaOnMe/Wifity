@@ -573,11 +573,6 @@ export async function registerRoutes(app: Application) {
         }
 
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-        const prompt = req.body.prompt;
-        
-        if (!prompt) {
-          return res.status(400).json({ message: 'Prompt is required' });
-        }
 
         // Get all uploaded images
         const uploadedImages: Buffer[] = [];
@@ -594,18 +589,34 @@ export async function registerRoutes(app: Application) {
           return res.status(400).json({ message: 'At least one image is required' });
         }
 
-        log(`Generating stack with ${uploadedImages.length} images and prompt: "${prompt.slice(0, 50)}..."`);
+        log(`Generating stack with ${uploadedImages.length} images`);
 
-        // Use the simple text generation for now - in a real implementation you'd want to use image editing
-        const requestParams = {
+        // Create a comprehensive prompt that preserves all main features of uploaded images
+        const imagePreservationPrompt = `Create a realistic "wif" stacking format image using the uploaded reference images. CRITICAL REQUIREMENTS:
+        
+        1. PRESERVE ALL MAIN FEATURES: Each uploaded image contains important subjects, objects, characters, or elements that MUST be preserved exactly as they appear - maintain their colors, shapes, distinctive features, clothing, expressions, poses, and visual characteristics.
+        
+        2. STACKING FORMAT: Stack all the main subjects/objects from the uploaded images vertically from bottom to top like a totem pole or tower. Each element should be clearly visible and properly proportioned.
+        
+        3. VISUAL FIDELITY: Keep the essential visual details of each uploaded image - if there's a person, maintain their appearance; if there's an object, keep its design and colors; if there's an animal, preserve its species and characteristics.
+        
+        4. COMPOSITION: Ensure all elements are visually connected in the stack, with realistic lighting, shadows, and depth. No floating elements.
+        
+        5. BACKGROUND: Use a neutral photographic background that complements the stacked elements.
+        
+        6. QUALITY: Generate a high-quality, photorealistic result that honors the source material while creating a cohesive stacked composition.
+        
+        The goal is to create a single image that showcases all the main subjects from the uploaded images in a stacked totem format while preserving their individual characteristics and visual integrity.`;
+
+        // Use image editing API to incorporate the uploaded images
+        const response = await editImage({
           model: "gpt-image-1",
-          prompt,
+          image: uploadedImages, // Pass the actual image data
+          prompt: imagePreservationPrompt,
           n: 1,
           size: "1024x1024",
           quality: "medium"
-        };
-        
-        const response = await generateImage(requestParams);
+        });
         
         let imageUrl;
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
@@ -622,7 +633,7 @@ export async function registerRoutes(app: Application) {
         
         // Store image in database
         const image = await storage.createImage({
-          prompt: `Wifify Stack: ${prompt.substring(0, 100)}`,
+          prompt: `Wifify Stack: Created from ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`,
           url: imageUrl,
           size: "1024x1024",
           userId: null,
