@@ -111,10 +111,9 @@ export default function ImageGenerator() {
     },
     onError: (error) => {
       setIsUpdating(false);
-      toast({
+      toast.error({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process images",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Failed to process images"
       });
     }
   });
@@ -159,10 +158,9 @@ export default function ImageGenerator() {
       }
     } catch (error) {
       setIsUpdating(false);
-      toast({
+      toast.error({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate image",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Failed to generate image"
       });
     }
   };
@@ -172,10 +170,9 @@ export default function ImageGenerator() {
     
     const uploadedImages = imageFiles.filter(file => file !== null);
     if (uploadedImages.length === 0) {
-      toast({
+      toast.error({
         title: "Missing Images",
-        description: "Please upload at least one image to create your Wifify",
-        variant: "destructive"
+        description: "Please upload at least one image to create your Wifify"
       });
       return;
     }
@@ -195,20 +192,18 @@ export default function ImageGenerator() {
     
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast({
+        toast.error({
           title: "Invalid file type",
-          description: `File type ${file.type} is not a supported image format`,
-          variant: "destructive"
+          description: `File type ${file.type} is not a supported image format`
         });
         return;
       }
       
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
-        toast({
+        toast.error({
           title: "File too large",
-          description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
-          variant: "destructive"
+          description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`
         });
         return;
       }
@@ -219,10 +214,9 @@ export default function ImageGenerator() {
         
         img.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          toast({
+          toast.error({
             title: "Invalid image",
-            description: "Unable to load image. The file may be corrupted or not a valid image.",
-            variant: "destructive"
+            description: "Unable to load image. The file may be corrupted or not a valid image."
           });
         };
         
@@ -237,10 +231,9 @@ export default function ImageGenerator() {
         
         img.src = objectUrl;
       } catch (error) {
-        toast({
+        toast.error({
           title: "Error processing image",
-          description: "An error occurred while processing the image file.",
-          variant: "destructive"
+          description: "An error occurred while processing the image file."
         });
       }
     } else {
@@ -275,20 +268,18 @@ export default function ImageGenerator() {
     
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast({
+        toast.error({
           title: "Invalid file type",
-          description: `File type ${file.type} is not a supported image format`,
-          variant: "destructive"
+          description: `File type ${file.type} is not a supported image format`
         });
         return;
       }
       
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
-        toast({
+        toast.error({
           title: "File too large",
-          description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
-          variant: "destructive"
+          description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`
         });
         return;
       }
@@ -299,10 +290,9 @@ export default function ImageGenerator() {
         
         img.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          toast({
+          toast.error({
             title: "Invalid image",
-            description: "Unable to load image. The file may be corrupted or not a valid image.",
-            variant: "destructive"
+            description: "Unable to load image. The file may be corrupted or not a valid image."
           });
         };
         
@@ -317,10 +307,9 @@ export default function ImageGenerator() {
         
         img.src = objectUrl;
       } catch (error) {
-        toast({
+        toast.error({
           title: "Error processing image",
-          description: "An error occurred while processing the dropped image file.",
-          variant: "destructive"
+          description: "An error occurred while processing the dropped image file."
         });
       }
     } else {
@@ -359,10 +348,9 @@ export default function ImageGenerator() {
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   if (!textOnlyPrompt.trim()) {
-                    toast({
+                    toast.error({
                       title: "Missing Prompt",
-                      description: "Please enter a wif sequence to generate",
-                      variant: "destructive"
+                      description: "Please enter a wif sequence to generate"
                     });
                     return;
                   }
@@ -559,25 +547,23 @@ export default function ImageGenerator() {
                           const imageId = processMutation.data?.id || 'wifify';
                           
                           if (!imageUrl) {
-                            toast({
+                            toast.error({
                               title: "Download failed",
-                              description: "No image URL available for download",
-                              variant: "destructive"
+                              description: "No image URL available for download"
                             });
                             return;
                           }
                           
                           await downloadImage(imageUrl, `wifify-${imageId}`);
                           
-                          toast({
+                          toast.success({
                             title: "Download successful!",
                             description: "Your Wifify has been saved"
                           });
                         } catch (error) {
-                          toast({
+                          toast.error({
                             title: "Download failed",
-                            description: error instanceof Error ? error.message : "Failed to download image",
-                            variant: "destructive"
+                            description: error instanceof Error ? error.message : "Failed to download image"
                           });
                         }
                       }}
