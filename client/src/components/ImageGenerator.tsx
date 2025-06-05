@@ -16,12 +16,10 @@ interface ImageData {
 }
 
 export default function ImageGenerator() {
-  const [imageFile1, setImageFile1] = useState<File | null>(null);
-  const [imagePreview1, setImagePreview1] = useState<string | null>(null);
-  const [imageFile2, setImageFile2] = useState<File | null>(null);
-  const [imagePreview2, setImagePreview2] = useState<string | null>(null);
-  const fileInputRef1 = useRef<HTMLInputElement>(null);
-  const fileInputRef2 = useRef<HTMLInputElement>(null);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null, null]);
+  const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([null, null, null, null, null]);
+  const [customPrompt, setCustomPrompt] = useState<string>("");
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null]);
   
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -45,34 +43,36 @@ export default function ImageGenerator() {
   // Cleanup function for when component unmounts or when preview changes
   useEffect(() => {
     return () => {
-      if (imagePreview1) {
-        URL.revokeObjectURL(imagePreview1);
-      }
-      if (imagePreview2) {
-        URL.revokeObjectURL(imagePreview2);
-      }
+      imagePreviews.forEach(preview => {
+        if (preview) {
+          URL.revokeObjectURL(preview);
+        }
+      });
     };
-  }, [imagePreview1, imagePreview2]);
+  }, [imagePreviews]);
   
-  // Dual image processing mutation
+  // Multi-image processing mutation
   const processMutation = useMutation({
     mutationFn: async () => {
       setIsUpdating(true);
       
-      if (!imageFile1 || !imageFile2) {
-        throw new Error("Both images are required");
+      const uploadedImages = imageFiles.filter(file => file !== null);
+      if (uploadedImages.length === 0) {
+        throw new Error("At least one image is required");
       }
       
       const formData = new FormData();
-      formData.append("image1", imageFile1);
-      formData.append("image2", imageFile2);
+      uploadedImages.forEach((file, index) => {
+        formData.append(`image${index + 1}`, file!);
+      });
       
-      // Hardcoded prompt for combining two images
-      const hardcodedPrompt = "Create a stunning artistic scene that seamlessly combines these two characters into one cohesive image. The characters should appear naturally together in various poses like standing side by side, sitting on a bench, in a car, at a diner, or any other natural setting. Make it look like they belong in the same world and are interacting in a believable way.";
+      // Use custom prompt with wif stacking format
+      const wifPrompt = customPrompt.trim() || "your custom stack here";
+      const fullPrompt = `I want to create a realistic image using the "wif" stacking format. Each word or phrase in the format is an element that should be stacked visually from bottom to top, like a totem. Please generate a high-quality, photorealistic image with these instructions: - Stack each item in the exact order of my prompt - Ensure realistic lighting, shadows, and textures - Keep everything visually connected, no floating items - Use a neutral or photographic background, unless implied otherwise. My wif sequence is: ${wifPrompt}`;
       
-      formData.append("prompt", hardcodedPrompt);
+      formData.append("prompt", fullPrompt);
       
-      const response = await fetch("/api/images/combine", {
+      const response = await fetch("/api/images/generate-stack", {
         method: "POST",
         body: formData,
       });
@@ -119,10 +119,11 @@ export default function ImageGenerator() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!imageFile1 || !imageFile2) {
+    const uploadedImages = imageFiles.filter(file => file !== null);
+    if (uploadedImages.length === 0) {
       toast({
         title: "Missing Images",
-        description: "Please upload both images before creating your IconicDuo",
+        description: "Please upload at least one image to create your Wif Stack",
         variant: "destructive"
       });
       return;
@@ -133,17 +134,12 @@ export default function ImageGenerator() {
     processMutation.mutate();
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, imageIndex: number) => {
     const file = e.target.files?.[0] || null;
     
-    const currentPreview = imageNumber === 1 ? imagePreview1 : imagePreview2;
+    const currentPreview = imagePreviews[imageIndex];
     if (currentPreview) {
       URL.revokeObjectURL(currentPreview);
-      if (imageNumber === 1) {
-        setImagePreview1(null);
-      } else {
-        setImagePreview2(null);
-      }
     }
     
     if (file) {
@@ -180,13 +176,12 @@ export default function ImageGenerator() {
         };
         
         img.onload = () => {
-          if (imageNumber === 1) {
-            setImageFile1(file);
-            setImagePreview1(objectUrl);
-          } else {
-            setImageFile2(file);
-            setImagePreview2(objectUrl);
-          }
+          const newFiles = [...imageFiles];
+          const newPreviews = [...imagePreviews];
+          newFiles[imageIndex] = file;
+          newPreviews[imageIndex] = objectUrl;
+          setImageFiles(newFiles);
+          setImagePreviews(newPreviews);
         };
         
         img.src = objectUrl;
@@ -198,13 +193,12 @@ export default function ImageGenerator() {
         });
       }
     } else {
-      if (imageNumber === 1) {
-        setImageFile1(null);
-        setImagePreview1(null);
-      } else {
-        setImageFile2(null);
-        setImagePreview2(null);
-      }
+      const newFiles = [...imageFiles];
+      const newPreviews = [...imagePreviews];
+      newFiles[imageIndex] = null;
+      newPreviews[imageIndex] = null;
+      setImageFiles(newFiles);
+      setImagePreviews(newPreviews);
     }
   };
   
@@ -218,19 +212,14 @@ export default function ImageGenerator() {
     setDragActive(false);
   };
   
-  const handleDrop = (e: React.DragEvent, imageNumber: 1 | 2) => {
+  const handleDrop = (e: React.DragEvent, imageIndex: number) => {
     e.preventDefault();
     setDragActive(false);
     const file = e.dataTransfer.files?.[0] || null;
     
-    const currentPreview = imageNumber === 1 ? imagePreview1 : imagePreview2;
+    const currentPreview = imagePreviews[imageIndex];
     if (currentPreview) {
       URL.revokeObjectURL(currentPreview);
-      if (imageNumber === 1) {
-        setImagePreview1(null);
-      } else {
-        setImagePreview2(null);
-      }
     }
     
     if (file) {
@@ -267,13 +256,12 @@ export default function ImageGenerator() {
         };
         
         img.onload = () => {
-          if (imageNumber === 1) {
-            setImageFile1(file);
-            setImagePreview1(objectUrl);
-          } else {
-            setImageFile2(file);
-            setImagePreview2(objectUrl);
-          }
+          const newFiles = [...imageFiles];
+          const newPreviews = [...imagePreviews];
+          newFiles[imageIndex] = file;
+          newPreviews[imageIndex] = objectUrl;
+          setImageFiles(newFiles);
+          setImagePreviews(newPreviews);
         };
         
         img.src = objectUrl;
@@ -285,13 +273,12 @@ export default function ImageGenerator() {
         });
       }
     } else {
-      if (imageNumber === 1) {
-        setImageFile1(null);
-        setImagePreview1(null);
-      } else {
-        setImageFile2(null);
-        setImagePreview2(null);
-      }
+      const newFiles = [...imageFiles];
+      const newPreviews = [...imagePreviews];
+      newFiles[imageIndex] = null;
+      newPreviews[imageIndex] = null;
+      setImageFiles(newFiles);
+      setImagePreviews(newPreviews);
     }
   };
 
@@ -301,10 +288,10 @@ export default function ImageGenerator() {
         {/* Simple Header */}
         <div className="text-center mb-8">
           <h2 className="text-3xl md:text-4xl font-display gradient-text mb-4">
-            Create Your IconicDuo
+            Create Your Wif Stack
           </h2>
           <p className="text-lg text-hsl(var(--muted-foreground)) max-w-2xl mx-auto">
-            Upload two character images and watch as AI seamlessly merges them into one stunning scene
+            Upload up to 5 images and create a custom prompt to generate your unique wif stack
           </p>
         </div>
         
@@ -312,153 +299,112 @@ export default function ImageGenerator() {
         <Card className="glass border-border/20">
           <CardContent className="p-8">
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Upload Section */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* First Image Upload */}
-                <div className="space-y-3">
-                  <Label htmlFor="upload-image1" className="text-lg font-display gradient-text">
-                    Character 1
-                  </Label>
-                  
-                  <div 
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
-                      dragActive 
-                        ? 'border-purple-400 bg-purple-500/5' 
-                        : imagePreview1 
-                          ? 'border-green-400 bg-green-500/5' 
-                          : 'border-border hover:border-purple-400 hover:bg-purple-500/5'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, 1)}
-                  >
-                    {imagePreview1 ? (
-                      <div className="relative">
-                        <img 
-                          src={imagePreview1} 
-                          alt="Character 1" 
-                          className="max-h-48 mx-auto rounded-lg shadow-lg"
-                        />
-                        <button 
-                          type="button"
-                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                          onClick={() => {
-                            if (imagePreview1) {
-                              URL.revokeObjectURL(imagePreview1);
-                            }
-                            setImageFile1(null);
-                            setImagePreview1(null);
-                            if (fileInputRef1.current) fileInputRef1.current.value = '';
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-4xl mb-3">👤</div>
-                        <h3 className="text-lg font-display gradient-text mb-2">Drop first character here</h3>
-                        <p className="text-muted-foreground mb-4">or click to browse</p>
-                        <button 
-                          type="button" 
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
-                          onClick={() => fileInputRef1.current?.click()}
-                        >
-                          Choose Image
-                        </button>
-                      </>
-                    )}
-                    <input 
-                      ref={fileInputRef1}
-                      id="upload-image1" 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, 1)}
-                    />
-                  </div>
-                </div>
-
-                {/* Second Image Upload */}
-                <div className="space-y-3">
-                  <Label htmlFor="upload-image2" className="text-lg font-display gradient-text">
-                    Character 2
-                  </Label>
-                  
-                  <div 
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
-                      dragActive 
-                        ? 'border-purple-400 bg-purple-500/5' 
-                        : imagePreview2 
-                          ? 'border-green-400 bg-green-500/5' 
-                          : 'border-border hover:border-purple-400 hover:bg-purple-500/5'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={(e) => handleDrop(e, 2)}
-                  >
-                    {imagePreview2 ? (
-                      <div className="relative">
-                        <img 
-                          src={imagePreview2} 
-                          alt="Character 2" 
-                          className="max-h-48 mx-auto rounded-lg shadow-lg"
-                        />
-                        <button 
-                          type="button"
-                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                          onClick={() => {
-                            if (imagePreview2) {
-                              URL.revokeObjectURL(imagePreview2);
-                            }
-                            setImageFile2(null);
-                            setImagePreview2(null);
-                            if (fileInputRef2.current) fileInputRef2.current.value = '';
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-4xl mb-3">👤</div>
-                        <h3 className="text-lg font-display gradient-text mb-2">Drop second character here</h3>
-                        <p className="text-muted-foreground mb-4">or click to browse</p>
-                        <button 
-                          type="button" 
-                          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all"
-                          onClick={() => fileInputRef2.current?.click()}
-                        >
-                          Choose Image
-                        </button>
-                      </>
-                    )}
-                    <input 
-                      ref={fileInputRef2}
-                      id="upload-image2" 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={(e) => handleFileChange(e, 2)}
-                    />
+              {/* Custom Prompt Section */}
+              <div className="space-y-3">
+                <Label htmlFor="custom-prompt" className="text-lg font-display gradient-text">
+                  Custom Wif Sequence
+                </Label>
+                <div className="relative">
+                  <textarea
+                    id="custom-prompt"
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Enter your custom wif sequence (e.g., 'pizza, cat, rainbow, mountain, spaceship')"
+                    className="w-full p-4 border border-border rounded-lg bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows={3}
+                  />
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Each word or phrase will be stacked from bottom to top like a totem
                   </div>
                 </div>
               </div>
+
+              {/* Upload Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[0, 1, 2, 3, 4].map((index) => (
+                  <div key={index} className="space-y-3">
+                    <Label htmlFor={`upload-image${index}`} className="text-lg font-display gradient-text">
+                      Image {index + 1} {index === 0 ? "(Required)" : "(Optional)"}
+                    </Label>
+                    
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-4 text-center transition-all duration-300 ${
+                        dragActive 
+                          ? 'border-purple-400 bg-purple-500/5' 
+                          : imagePreviews[index] 
+                            ? 'border-green-400 bg-green-500/5' 
+                            : 'border-border hover:border-purple-400 hover:bg-purple-500/5'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                    >
+                      {imagePreviews[index] ? (
+                        <div className="relative">
+                          <img 
+                            src={imagePreviews[index]!} 
+                            alt={`Image ${index + 1}`} 
+                            className="max-h-32 mx-auto rounded-lg shadow-lg"
+                          />
+                          <button 
+                            type="button"
+                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors text-sm"
+                            onClick={() => {
+                              if (imagePreviews[index]) {
+                                URL.revokeObjectURL(imagePreviews[index]!);
+                              }
+                              const newFiles = [...imageFiles];
+                              const newPreviews = [...imagePreviews];
+                              newFiles[index] = null;
+                              newPreviews[index] = null;
+                              setImageFiles(newFiles);
+                              setImagePreviews(newPreviews);
+                              if (fileInputRefs.current[index]) fileInputRefs.current[index]!.value = '';
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-2xl mb-2">📷</div>
+                          <p className="text-sm text-muted-foreground mb-2">Drop image here</p>
+                          <button 
+                            type="button" 
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 text-sm rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+                            onClick={() => fileInputRefs.current[index]?.click()}
+                          >
+                            Choose
+                          </button>
+                        </>
+                      )}
+                      <input 
+                        ref={(el) => fileInputRefs.current[index] = el}
+                        id={`upload-image${index}`} 
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => handleFileChange(e, index)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
               
-              {/* Merge Button */}
+              {/* Generate Button */}
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white text-lg font-display py-4 hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition-all"
-                disabled={processMutation.isPending || !imageFile1 || !imageFile2}
+                disabled={processMutation.isPending || imageFiles.filter(file => file !== null).length === 0}
               >
                 {processMutation.isPending ? (
                   <span className="flex items-center gap-2">
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating IconicDuo...
+                    Creating Wif Stack...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
-                    👥 Create IconicDuo
+                    🏗️ Generate Wif Stack
                   </span>
                 )}
               </Button>
@@ -473,8 +419,8 @@ export default function ImageGenerator() {
               {processMutation.isPending || isUpdating ? (
                 <div className="text-center py-16">
                   <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <h4 className="text-lg font-display gradient-text mb-2">Creating your IconicDuo...</h4>
-                  <p className="text-muted-foreground">This may take a moment as we merge your characters seamlessly</p>
+                  <h4 className="text-lg font-display gradient-text mb-2">Creating your Wif Stack...</h4>
+                  <p className="text-muted-foreground">This may take a moment as we stack your elements perfectly</p>
                 </div>
               ) : processMutation.isError ? (
                 <div className="text-center py-16">
@@ -489,7 +435,7 @@ export default function ImageGenerator() {
                   <div className="inline-block rounded-lg overflow-hidden p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 shadow-lg">
                     <img 
                       src={processMutation.data?.url} 
-                      alt="IconicDuo Creation"
+                      alt="Wif Stack Creation"
                       className="max-w-full max-h-96 rounded-lg"
                     />
                   </div>
@@ -501,7 +447,7 @@ export default function ImageGenerator() {
                       onClick={async () => {
                         try {
                           const imageUrl = processMutation.data?.url;
-                          const imageId = processMutation.data?.id || 'iconicduo';
+                          const imageId = processMutation.data?.id || 'wifstack';
                           
                           if (!imageUrl) {
                             toast({
@@ -512,11 +458,11 @@ export default function ImageGenerator() {
                             return;
                           }
                           
-                          await downloadImage(imageUrl, `iconicduo-${imageId}`);
+                          await downloadImage(imageUrl, `wifstack-${imageId}`);
                           
                           toast({
                             title: "Download successful!",
-                            description: "Your IconicDuo creation has been saved"
+                            description: "Your Wif Stack has been saved"
                           });
                         } catch (error) {
                           toast({
@@ -527,16 +473,16 @@ export default function ImageGenerator() {
                         }
                       }}
                     >
-                      Download IconicDuo
+                      Download Wif Stack
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="text-8xl mb-6">👥</div>
-                  <h4 className="text-xl font-display gradient-text mb-2">Ready to create your IconicDuo?</h4>
+                  <div className="text-8xl mb-6">🏗️</div>
+                  <h4 className="text-xl font-display gradient-text mb-2">Ready to create your Wif Stack?</h4>
                   <p className="text-muted-foreground max-w-lg mx-auto">
-                    Upload two character images and let AI create a stunning merged scene
+                    Upload images and enter a custom prompt to generate your unique stacked creation
                   </p>
                 </div>
               )}
