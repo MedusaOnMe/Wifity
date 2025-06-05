@@ -122,16 +122,16 @@ export default function ImageGenerator() {
   const handleTextOnlyGeneration = async () => {
     setIsUpdating(true);
     
-    const formData = new FormData();
     const wifPrompt = textOnlyPrompt.trim();
     const fullPrompt = `I want to create a realistic image using the "wif" stacking format. Each word or phrase in the format is an element that should be stacked visually from bottom to top, like a totem. Please generate a high-quality, photorealistic image with these instructions: - Stack each item in the exact order of my prompt - Ensure realistic lighting, shadows, and textures - Keep everything visually connected, no floating items - Use a neutral or photographic background, unless implied otherwise. My wif sequence is: ${wifPrompt}`;
-    
-    formData.append("prompt", fullPrompt);
     
     try {
       const response = await fetch("/api/images/generate-text", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: fullPrompt }),
       });
       
       if (!response.ok) {
