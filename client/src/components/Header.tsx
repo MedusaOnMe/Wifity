@@ -7,13 +7,13 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   return (
-    <header className="glass sticky top-0 z-50 border-b border-hsl(var(--border))/20">
+    <header className="glass sticky top-0 z-50 border-b border-hsl(var(--border))">
       <div className="container mx-auto px-6">
-        <div className="flex h-20 items-center justify-between">
+        <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 finger-gradient rounded-full flex items-center justify-center finger-shadow">
-              <span className="text-2xl">👥</span>
+          <Link href="/" className="flex items-center gap-3 transition-all hover:scale-105">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-xl text-white shadow-lg">
+              📐
             </div>
             <span className="font-display text-2xl font-bold gradient-text">
               Wifify
@@ -21,7 +21,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </Link>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/"
               className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
@@ -38,7 +38,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               href="https://x.com/i/communities/1930184588879335841"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors p-2 glass rounded-full"
+              className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors p-2 rounded-lg hover:bg-hsl(var(--muted))"
               aria-label="Follow us on X (Twitter)"
             >
               <svg
@@ -54,7 +54,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-3 text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) glass rounded-full transition-colors"
+            className="md:hidden p-2 text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) hover:bg-hsl(var(--muted)) rounded-lg transition-colors"
             onClick={onMenuClick}
           >
             <svg

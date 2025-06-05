@@ -17,12 +17,12 @@ interface ImageData {
 }
 
 export default function ImageGenerator() {
-  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null, null]);
-  const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([null, null, null, null, null]);
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null, null]);
+  const [imagePreviews, setImagePreviews] = useState<(string | null)[]>([null, null, null, null]);
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [textOnlyPrompt, setTextOnlyPrompt] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("prompt");
-  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null]);
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null]);
   
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -391,8 +391,8 @@ export default function ImageGenerator() {
               <TabsContent value="images" className="space-y-6 mt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Upload Section */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[0, 1, 2, 3, 4].map((index) => (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[0, 1, 2, 3].map((index) => (
                       <div key={index} className="space-y-3">
                         <Label htmlFor={`upload-image${index}`} className="text-lg font-display gradient-text">
                           Image {index + 1} {index === 0 ? "(Required)" : "(Optional)"}

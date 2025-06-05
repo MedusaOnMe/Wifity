@@ -290,7 +290,7 @@ const upload = multer({
   },
 }).single('image');
 
-// Configure multer for multi-image uploads (up to 5 images)
+// Configure multer for multi-image uploads (up to 4 images)
 const uploadMulti = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
@@ -323,8 +323,7 @@ const uploadMulti = multer({
   { name: 'image0', maxCount: 1 },
   { name: 'image1', maxCount: 1 },
   { name: 'image2', maxCount: 1 },
-  { name: 'image3', maxCount: 1 },
-  { name: 'image4', maxCount: 1 }
+  { name: 'image3', maxCount: 1 }
 ]);
 
 // Configure multer for dual image uploads
@@ -576,7 +575,7 @@ export async function registerRoutes(app: Application) {
 
         // Get all uploaded images
         const uploadedImages: Buffer[] = [];
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 4; i++) {
           const fieldName = `image${i}`;
           if (files[fieldName] && files[fieldName][0]) {
             const imagePath = files[fieldName][0].path;

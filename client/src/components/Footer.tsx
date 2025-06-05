@@ -4,52 +4,60 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-white border-t border-gray-200 py-8">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+    <footer className="glass border-t border-hsl(var(--border)) py-12">
+      <div className="container mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           {/* Logo Section */}
           <div>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">N</span>
+            <Link href="/" className="flex items-center gap-3 transition-all hover:scale-105">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center text-xl text-white shadow-lg">
+                📐
               </div>
               <div>
-                <span className="font-display text-lg font-semibold text-gray-700">
-                  No-ify
+                <span className="font-display text-2xl font-bold gradient-text">
+                  Wifify
                 </span>
-                <div className="text-xs text-gray-500">Simple nofacify</div>
+                <div className="text-sm text-hsl(var(--muted-foreground))">Stack Your World</div>
               </div>
             </Link>
           </div>
           
           {/* Quick Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <Link 
               href="/" 
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
             >
-              Convert
+              Create
             </Link>
             <Link 
               href="/gallery" 
-              className="text-gray-600 hover:text-gray-900 transition-colors"
+              className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
             >
               Gallery
             </Link>
+            <a
+              href="https://x.com/i/communities/1930184588879335841"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-hsl(var(--foreground)) hover:text-hsl(var(--primary)) transition-colors font-medium"
+            >
+              Community
+            </a>
           </div>
         </div>
         
         {/* Divider */}
-        <div className="w-full h-px bg-gray-200 my-6"></div>
+        <div className="w-full h-px bg-hsl(var(--border)) my-8"></div>
         
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-center md:text-left">
-            <p className="text-gray-600 text-sm">
-              © {currentYear} No-ify. All rights reserved.
+            <p className="text-hsl(var(--muted-foreground)) text-sm">
+              © {currentYear} Wifify. All rights reserved.
             </p>
-            <p className="text-gray-500 text-xs mt-1">
-              Convert images to clean, minimalist nofacified versions.
+            <p className="text-hsl(var(--muted-foreground)) text-xs mt-1">
+              Create stunning stacked compositions with AI.
             </p>
           </div>
         </div>

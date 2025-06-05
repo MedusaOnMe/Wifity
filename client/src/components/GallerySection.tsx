@@ -74,7 +74,7 @@ export default function GallerySection() {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {[...Array(8)].map((_, index) => (
-              <div key={index} className="iconic-card p-0 overflow-hidden interactive-hover">
+              <div key={index} className="modern-card p-0 overflow-hidden interactive-hover">
                 <Skeleton className="w-full aspect-square" style={{background: 'hsl(var(--muted))'}} />
                 <div className="p-4">
                   <Skeleton className="h-4 w-full mb-2" style={{background: 'hsl(var(--muted))'}} />
@@ -84,7 +84,7 @@ export default function GallerySection() {
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center p-8 max-w-md mx-auto iconic-card">
+          <div className="text-center p-8 max-w-md mx-auto modern-card">
             <div className="text-6xl mb-4">💔</div>
             <p className="text-red-400 mb-2 font-display text-lg">Failed to load gallery</p>
             <p className="text-hsl(var(--muted-foreground)) text-sm">
@@ -94,12 +94,12 @@ export default function GallerySection() {
         ) : images && images.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {images.map((image: Image) => (
-              <div key={image.id} className="iconic-card p-0 overflow-hidden cursor-pointer" onClick={() => handleImageClick(image)}>
-                <div className="aspect-square overflow-hidden finger-gradient p-2">
+              <div key={image.id} className="modern-card p-0 overflow-hidden cursor-pointer interactive-hover" onClick={() => handleImageClick(image)}>
+                <div className="aspect-square overflow-hidden p-2">
                   <img 
                     src={image.url} 
                     alt="Wifify creation" 
-                    className="w-full h-full object-cover iconic-rounded"
+                    className="w-full h-full object-cover rounded-lg"
                     loading="lazy" 
                   />
                 </div>
@@ -107,7 +107,7 @@ export default function GallerySection() {
             ))}
           </div>
         ) : (
-          <div className="text-center p-8 max-w-md mx-auto iconic-card">
+          <div className="text-center p-8 max-w-md mx-auto modern-card">
             <div className="text-8xl mb-6">👥</div>
             <p className="text-hsl(var(--foreground)) mb-2 font-display text-xl">
               No Wifify creations yet!
@@ -122,7 +122,7 @@ export default function GallerySection() {
       {/* Image details modal */}
       {selectedImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background: 'hsl(var(--background) / 0.8)'}}>
-          <div className="iconic-card max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="modern-card max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="relative">
               <button 
                 className="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center z-10 hover:bg-red-600 transition-colors"
@@ -131,11 +131,11 @@ export default function GallerySection() {
                 ×
               </button>
               
-              <div className="overflow-hidden max-h-[60vh] finger-gradient p-4">
+              <div className="overflow-hidden max-h-[60vh] p-4">
                 <img 
                   src={selectedImage.url} 
                   alt="ditofied image" 
-                  className="w-full object-contain iconic-rounded finger-shadow"
+                  className="w-full object-contain rounded-lg"
                 />
               </div>
               
@@ -149,7 +149,7 @@ export default function GallerySection() {
                 
                 <div className="flex gap-4">
                   <Button 
-                    className="btn-accent"
+                    className="btn-primary"
                     onClick={() => downloadImage(selectedImage.url, `wifify-${selectedImage.id.split('/').pop() || 'creation'}`)}
                   >
                     Download

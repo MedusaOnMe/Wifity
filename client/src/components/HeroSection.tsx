@@ -9,27 +9,27 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative py-24 md:py-32 overflow-hidden">
+    <section className="relative py-24 md:py-32 overflow-hidden dot-pattern">
       <div className="container mx-auto px-6 text-center relative z-10">
         {/* Hero content */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto fade-in">
           {/* Main title */}
-          <h1 className="text-6xl md:text-8xl font-display gradient-text mb-6 tracking-tight">
+          <h1 className="text-6xl md:text-8xl font-display gradient-text mb-8 tracking-tight">
             Wifify
           </h1>
 
           {/* Subtitle */}
-          <p className="text-2xl md:text-3xl text-hsl(var(--muted-foreground)) mb-8 font-medium">
-            Stack your world with AI
+          <p className="text-xl md:text-2xl text-hsl(var(--muted-foreground)) mb-12 font-medium">
+            Stack Your World with AI
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
             <Button
               onClick={scrollToGenerator}
-              className="btn-primary text-lg px-8 py-4"
+              className="btn-primary text-lg px-8 py-4 font-medium modern-card interactive-hover"
             >
-              Create Wifify
+              Start Creating
             </Button>
             <Button
               onClick={() =>
@@ -39,20 +39,18 @@ export default function HeroSection() {
                 })
               }
               variant="outline"
-              className="glass border-hsl(var(--border)) text-hsl(var(--foreground)) text-lg px-8 py-4"
+              className="btn-secondary text-lg px-8 py-4 font-medium modern-card"
             >
-              Gallery
+              View Gallery
             </Button>
           </div>
-
-          {/* Contract address */}
         </div>
       </div>
 
-      {/* Background decorations */}
+      {/* Modern Background Effects */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-gradient-to-br from-purple-500/5 to-pink-500/5 blur-3xl"></div>
-        <div className="absolute top-3/4 right-1/4 w-48 h-48 rounded-full bg-gradient-to-br from-blue-500/5 to-cyan-500/5 blur-3xl"></div>
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-gradient-to-br from-blue-500/5 to-purple-500/5 blur-3xl floating"></div>
+        <div className="absolute top-3/4 right-1/4 w-48 h-48 rounded-full bg-gradient-to-br from-cyan-500/5 to-blue-500/5 blur-2xl floating" style={{animationDelay: '1s'}}></div>
       </div>
     </section>
   );
