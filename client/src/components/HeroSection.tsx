@@ -17,41 +17,46 @@ export default function HeroSection() {
           <h1 className="text-6xl md:text-8xl font-display gradient-text mb-6 tracking-tight">
             ditofy
           </h1>
-          
+
           {/* Subtitle */}
           <p className="text-2xl md:text-3xl text-hsl(var(--muted-foreground)) mb-8 font-medium">
             ditofy your images
           </p>
-          
+
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Button 
+            <Button
               onClick={scrollToGenerator}
               className="btn-primary text-lg px-8 py-4"
             >
               ditofy
             </Button>
-            <Button 
-              onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}
+            <Button
+              onClick={() =>
+                window.scrollTo({
+                  top: document.body.scrollHeight,
+                  behavior: "smooth",
+                })
+              }
               variant="outline"
               className="glass border-hsl(var(--border)) text-hsl(var(--foreground)) text-lg px-8 py-4"
             >
               Gallery
             </Button>
           </div>
-          
+
           {/* Contract address */}
           <div className="mt-16 p-4 ditofy-card max-w-2xl mx-auto">
             <p className="text-sm text-hsl(var(--muted-foreground)) mb-2 font-mono">
               Contract Address:
             </p>
             <p className="font-mono text-sm gradient-text break-all">
-              5tTAohWn8aGvCgdzrcuvenCs5uthyE8yntMTffPBpump
+              4TEsG73mbBbAgm9zEggKyWi5uw3TWgCth9hEmf2ppump
             </p>
           </div>
         </div>
       </div>
-      
+
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-gradient-to-br from-purple-500/5 to-pink-500/5 blur-3xl"></div>
