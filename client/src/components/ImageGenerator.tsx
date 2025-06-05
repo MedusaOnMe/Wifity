@@ -1,12 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { downloadImage } from "@/lib/image-utils";
-import { GenerateImageParams } from "@shared/schema";
 import { uploadImageToFirebase, onStorageChange } from "@/lib/firebase";
 import { toast } from "@/components/ui/use-toast";
 
@@ -19,15 +16,12 @@ interface ImageData {
 }
 
 export default function ImageGenerator() {
-  const [activeTab, setActiveTab] = useState<"generate" | "edit">("generate");
-  const [prompt, setPrompt] = useState("");
-  const [size] = useState<GenerateImageParams["size"]>("1024x1024");
-  const [quality] = useState<GenerateImageParams["quality"]>("standard");
-  const [style] = useState<GenerateImageParams["style"]>("vivid");
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [maskStrength] = useState<number>(90);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile1, setImageFile1] = useState<File | null>(null);
+  const [imagePreview1, setImagePreview1] = useState<string | null>(null);
+  const [imageFile2, setImageFile2] = useState<File | null>(null);
+  const [imagePreview2, setImagePreview2] = useState<string | null>(null);
+  const fileInputRef1 = useRef<HTMLInputElement>(null);
+  const fileInputRef2 = useRef<HTMLInputElement>(null);
   
   const [currentImage, setCurrentImage] = useState<ImageData | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -51,41 +45,41 @@ export default function ImageGenerator() {
   // Cleanup function for when component unmounts or when preview changes
   useEffect(() => {
     return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
+      if (imagePreview1) {
+        URL.revokeObjectURL(imagePreview1);
+      }
+      if (imagePreview2) {
+        URL.revokeObjectURL(imagePreview2);
       }
     };
-  }, []);
+  }, [imagePreview1, imagePreview2]);
   
-  // Reset form when changing tabs
-  useEffect(() => {
-    setPrompt("");
-    if (imageFile && imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-      setImageFile(null);
-      setImagePreview(null);
-    }
-  }, [activeTab]);
-  
-  // Generation mutation
-  const generateMutation = useMutation({
-    mutationFn: async (data: GenerateImageParams) => {
+  // Dual image processing mutation
+  const processMutation = useMutation({
+    mutationFn: async () => {
       setIsUpdating(true);
       
-      // Convert to finger art
-      data.prompt = `Create a cute cartoon drawing of ${data.prompt} painted on a human finger like finger art`;
+      if (!imageFile1 || !imageFile2) {
+        throw new Error("Both images are required");
+      }
       
-      const response = await fetch("/api/images/generate", {
+      const formData = new FormData();
+      formData.append("image1", imageFile1);
+      formData.append("image2", imageFile2);
+      
+      // Hardcoded prompt for combining two images
+      const hardcodedPrompt = "Create a stunning artistic scene that seamlessly combines these two characters into one cohesive image. The characters should appear naturally together in various poses like standing side by side, sitting on a bench, in a car, at a diner, or any other natural setting. Make it look like they belong in the same world and are interacting in a believable way.";
+      
+      formData.append("prompt", hardcodedPrompt);
+      
+      const response = await fetch("/api/images/combine", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
+        body: formData,
       });
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to generate image");
+        throw new Error(error.message || "Failed to process images");
       }
       
       return response.json();
@@ -95,14 +89,14 @@ export default function ImageGenerator() {
         try {
           const imageResponse = await fetch(data.url);
           if (!imageResponse.ok) {
-            throw new Error(`Failed to fetch generated image: ${imageResponse.statusText}`);
+            throw new Error(`Failed to fetch processed image: ${imageResponse.statusText}`);
           }
           
           const imageBlob = await imageResponse.blob();
           const stableUrl = URL.createObjectURL(imageBlob);
           
           try {
-            await uploadImageToFirebase(stableUrl, data.prompt);
+            await uploadImageToFirebase(stableUrl, "IconicDuo Creation");
           } finally {
             URL.revokeObjectURL(stableUrl);
           }
@@ -111,127 +105,50 @@ export default function ImageGenerator() {
           setIsUpdating(false);
         }
       }
-    }
-  });
-  
-  // Image edit mutation - no prompt needed, automatic conversion
-  const editImageMutation = useMutation({
-    mutationFn: async () => {
-      setIsUpdating(true);
-      
-      if (!imageFile) {
-        throw new Error("Image is required");
-      }
-      
-      const fileCopy = new File([imageFile], imageFile.name, { 
-        type: imageFile.type,
-        lastModified: imageFile.lastModified 
-      });
-      
-      const formData = new FormData();
-      formData.append("image", fileCopy);
-      
-      // Automatic conversion prompt - no user input needed
-      const autoPrompt = "Transform this into a cute cartoon drawing painted on a human finger like finger art";
-      
-      formData.append("prompt", autoPrompt);
-      formData.append("mask_strength", maskStrength.toString());
-      
-      try {
-        const jobResponse = await fetch("/api/images/edit/create-job", {
-          method: "POST",
-          body: formData,
-        });
-        
-        if (!jobResponse.ok) {
-          throw new Error("Failed to create image edit job");
-        }
-        
-        const jobData = await jobResponse.json();
-        const jobId = jobData.jobId;
-        
-        const maxPollTime = 5 * 60 * 1000; // 5 minutes
-        const pollInterval = 2000; // 2 seconds
-        const startTime = Date.now();
-        
-        const pollJobStatus = async (): Promise<any> => {
-          if (Date.now() - startTime > maxPollTime) {
-            throw new Error("Image processing timed out after 5 minutes.");
-          }
-          
-          const statusResponse = await fetch(`/api/jobs/${jobId}`);
-        
-          if (!statusResponse.ok) {
-            throw new Error("Failed to check job status");
-          }
-          
-          const statusData = await statusResponse.json();
-          
-          if (statusData.status === 'completed') {
-            return statusData.result;
-          } else if (statusData.status === 'failed') {
-            throw new Error("Image processing failed");
-          } else {
-            await new Promise(resolve => setTimeout(resolve, pollInterval));
-            return pollJobStatus();
-          }
-        };
-        
-        return await pollJobStatus();
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-        throw error;
-      }
     },
-    onSuccess: async (data) => {
-      if (data?.url) {
-        try {
-          const imageResponse = await fetch(data.url);
-          if (!imageResponse.ok) {
-            throw new Error(`Failed to fetch edited image: ${imageResponse.statusText}`);
-          }
-          
-          const imageBlob = await imageResponse.blob();
-          const stableUrl = URL.createObjectURL(imageBlob);
-          
-          try {
-            await uploadImageToFirebase(stableUrl, "ditofied");
-          } finally {
-            URL.revokeObjectURL(stableUrl);
-          }
-        } catch (error) {
-          console.error("Failed to upload image to Firebase:", error);
-        }
-      }
+    onError: (error) => {
+      setIsUpdating(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process images",
+        variant: "destructive"
+      });
     }
   });
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUpdating(true);
     
-    if (activeTab === "generate") {
-      generateMutation.reset();
-      editImageMutation.reset();
-      generateMutation.mutate({ prompt, size, quality, style });
-    } else {
-      generateMutation.reset();
-      editImageMutation.reset();
-      editImageMutation.mutate();
+    if (!imageFile1 || !imageFile2) {
+      toast({
+        title: "Missing Images",
+        description: "Please upload both images before creating your IconicDuo",
+        variant: "destructive"
+      });
+      return;
     }
+    
+    setIsUpdating(true);
+    processMutation.reset();
+    processMutation.mutate();
   };
   
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, imageNumber: 1 | 2) => {
     const file = e.target.files?.[0] || null;
     
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-      setImagePreview(null);
+    const currentPreview = imageNumber === 1 ? imagePreview1 : imagePreview2;
+    if (currentPreview) {
+      URL.revokeObjectURL(currentPreview);
+      if (imageNumber === 1) {
+        setImagePreview1(null);
+      } else {
+        setImagePreview2(null);
+      }
     }
     
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error({
+        toast({
           title: "Invalid file type",
           description: `File type ${file.type} is not a supported image format`,
           variant: "destructive"
@@ -241,7 +158,7 @@ export default function ImageGenerator() {
       
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
-        toast.error({
+        toast({
           title: "File too large",
           description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
           variant: "destructive"
@@ -255,7 +172,7 @@ export default function ImageGenerator() {
         
         img.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          toast.error({
+          toast({
             title: "Invalid image",
             description: "Unable to load image. The file may be corrupted or not a valid image.",
             variant: "destructive"
@@ -263,21 +180,31 @@ export default function ImageGenerator() {
         };
         
         img.onload = () => {
-          setImageFile(file);
-          setImagePreview(objectUrl);
+          if (imageNumber === 1) {
+            setImageFile1(file);
+            setImagePreview1(objectUrl);
+          } else {
+            setImageFile2(file);
+            setImagePreview2(objectUrl);
+          }
         };
         
         img.src = objectUrl;
       } catch (error) {
-        toast.error({
+        toast({
           title: "Error processing image",
           description: "An error occurred while processing the image file.",
           variant: "destructive"
         });
       }
     } else {
-      setImageFile(null);
-      setImagePreview(null);
+      if (imageNumber === 1) {
+        setImageFile1(null);
+        setImagePreview1(null);
+      } else {
+        setImageFile2(null);
+        setImagePreview2(null);
+      }
     }
   };
   
@@ -291,19 +218,24 @@ export default function ImageGenerator() {
     setDragActive(false);
   };
   
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, imageNumber: 1 | 2) => {
     e.preventDefault();
     setDragActive(false);
     const file = e.dataTransfer.files?.[0] || null;
     
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-      setImagePreview(null);
+    const currentPreview = imageNumber === 1 ? imagePreview1 : imagePreview2;
+    if (currentPreview) {
+      URL.revokeObjectURL(currentPreview);
+      if (imageNumber === 1) {
+        setImagePreview1(null);
+      } else {
+        setImagePreview2(null);
+      }
     }
     
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error({
+        toast({
           title: "Invalid file type",
           description: `File type ${file.type} is not a supported image format`,
           variant: "destructive"
@@ -313,7 +245,7 @@ export default function ImageGenerator() {
       
       const maxSizeInBytes = 4 * 1024 * 1024; // 4MB
       if (file.size > maxSizeInBytes) {
-        toast.error({
+        toast({
           title: "File too large",
           description: `Image is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 4MB.`,
           variant: "destructive"
@@ -327,7 +259,7 @@ export default function ImageGenerator() {
         
         img.onerror = () => {
           URL.revokeObjectURL(objectUrl);
-          toast.error({
+          toast({
             title: "Invalid image",
             description: "Unable to load image. The file may be corrupted or not a valid image.",
             variant: "destructive"
@@ -335,255 +267,281 @@ export default function ImageGenerator() {
         };
         
         img.onload = () => {
-          setImageFile(file);
-          setImagePreview(objectUrl);
+          if (imageNumber === 1) {
+            setImageFile1(file);
+            setImagePreview1(objectUrl);
+          } else {
+            setImageFile2(file);
+            setImagePreview2(objectUrl);
+          }
         };
         
         img.src = objectUrl;
       } catch (error) {
-        toast.error({
+        toast({
           title: "Error processing image",
           description: "An error occurred while processing the dropped image file.",
           variant: "destructive"
         });
       }
     } else {
-      setImageFile(null);
-      setImagePreview(null);
+      if (imageNumber === 1) {
+        setImageFile1(null);
+        setImagePreview1(null);
+      } else {
+        setImageFile2(null);
+        setImagePreview2(null);
+      }
     }
   };
-  
-  const activeMutation = activeTab === "generate" ? generateMutation : editImageMutation;
 
   return (
     <section id="image-generator" className="py-16 relative">
       <div className="container px-6 mx-auto max-w-4xl">
         {/* Simple Header */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl md:text-4xl font-display gradient-text mb-4">
+            Create Your IconicDuo
+          </h2>
+          <p className="text-lg text-hsl(var(--muted-foreground)) max-w-2xl mx-auto">
+            Upload two character images and watch as AI seamlessly merges them into one stunning scene
+          </p>
         </div>
         
         {/* Main Card */}
-        <div className="ditofy-card">
-          <div className="p-8">
-            {/* Tab Navigation */}
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "generate" | "edit")}>
-              <div className="mb-8">
-                <TabsList className="w-full max-w-md mx-auto grid grid-cols-2 glass">
-                  <TabsTrigger 
-                    value="generate"
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white font-medium"
+        <Card className="glass border-border/20">
+          <CardContent className="p-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Upload Section */}
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* First Image Upload */}
+                <div className="space-y-3">
+                  <Label htmlFor="upload-image1" className="text-lg font-display gradient-text">
+                    Character 1
+                  </Label>
+                  
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
+                      dragActive 
+                        ? 'border-purple-400 bg-purple-500/5' 
+                        : imagePreview1 
+                          ? 'border-green-400 bg-green-500/5' 
+                          : 'border-border hover:border-purple-400 hover:bg-purple-500/5'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 1)}
                   >
-                    Generate
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="edit"
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white font-medium"
-                  >
-                    Transform
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-              
-              <TabsContent value="generate" className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Prompt Section */}
-                  <div className="space-y-3">
-                    <Label htmlFor="prompt" className="text-lg font-display gradient-text">
-                      Describe your image
-                    </Label>
-                    <Textarea
-                      id="prompt"
-                      placeholder="Describe what you want to ditofy..."
-                      className="min-h-32 input-modern text-base"
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      required
+                    {imagePreview1 ? (
+                      <div className="relative">
+                        <img 
+                          src={imagePreview1} 
+                          alt="Character 1" 
+                          className="max-h-48 mx-auto rounded-lg shadow-lg"
+                        />
+                        <button 
+                          type="button"
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                          onClick={() => {
+                            if (imagePreview1) {
+                              URL.revokeObjectURL(imagePreview1);
+                            }
+                            setImageFile1(null);
+                            setImagePreview1(null);
+                            if (fileInputRef1.current) fileInputRef1.current.value = '';
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="text-4xl mb-3">👤</div>
+                        <h3 className="text-lg font-display gradient-text mb-2">Drop first character here</h3>
+                        <p className="text-muted-foreground mb-4">or click to browse</p>
+                        <button 
+                          type="button" 
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-2 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+                          onClick={() => fileInputRef1.current?.click()}
+                        >
+                          Choose Image
+                        </button>
+                      </>
+                    )}
+                    <input 
+                      ref={fileInputRef1}
+                      id="upload-image1" 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 1)}
                     />
                   </div>
+                </div>
+
+                {/* Second Image Upload */}
+                <div className="space-y-3">
+                  <Label htmlFor="upload-image2" className="text-lg font-display gradient-text">
+                    Character 2
+                  </Label>
                   
-                  {/* Generate Button */}
-                  <Button 
-                    type="submit" 
-                    className="w-full btn-primary text-lg font-display"
-                    disabled={activeMutation.isPending || !prompt.trim()}
+                  <div 
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
+                      dragActive 
+                        ? 'border-purple-400 bg-purple-500/5' 
+                        : imagePreview2 
+                          ? 'border-green-400 bg-green-500/5' 
+                          : 'border-border hover:border-purple-400 hover:bg-purple-500/5'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, 2)}
                   >
-                    {activeMutation.isPending ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-5 h-5 custom-spinner"></div>
-                        ditofying...
-                      </span>
+                    {imagePreview2 ? (
+                      <div className="relative">
+                        <img 
+                          src={imagePreview2} 
+                          alt="Character 2" 
+                          className="max-h-48 mx-auto rounded-lg shadow-lg"
+                        />
+                        <button 
+                          type="button"
+                          className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                          onClick={() => {
+                            if (imagePreview2) {
+                              URL.revokeObjectURL(imagePreview2);
+                            }
+                            setImageFile2(null);
+                            setImagePreview2(null);
+                            if (fileInputRef2.current) fileInputRef2.current.value = '';
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
                     ) : (
-                      <span>ditofy</span>
+                      <>
+                        <div className="text-4xl mb-3">👤</div>
+                        <h3 className="text-lg font-display gradient-text mb-2">Drop second character here</h3>
+                        <p className="text-muted-foreground mb-4">or click to browse</p>
+                        <button 
+                          type="button" 
+                          className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all"
+                          onClick={() => fileInputRef2.current?.click()}
+                        >
+                          Choose Image
+                        </button>
+                      </>
                     )}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="edit" className="space-y-6">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Upload Section */}
-                  <div className="space-y-3">
-                    <Label htmlFor="upload-image" className="text-lg font-display gradient-text">
-                      Upload your image
-                    </Label>
-                    
-                    <div 
-                      className={`border-2 border-dashed ditofy-rounded p-8 text-center transition-all duration-300 ${
-                        dragActive 
-                          ? 'border-purple-400 glass shimmer' 
-                          : imagePreview 
-                            ? 'border-green-400 glass' 
-                            : 'border-hsl(var(--border)) glass hover:border-purple-400'
-                      }`}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                    >
-                      {imagePreview ? (
-                        <div className="relative">
-                          <img 
-                            src={imagePreview} 
-                            alt="Source" 
-                            className="max-h-64 mx-auto ditofy-rounded finger-shadow"
-                          />
-                          <button 
-                            type="button"
-                            className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                            onClick={() => {
-                              if (imagePreview) {
-                                URL.revokeObjectURL(imagePreview);
-                              }
-                              setImageFile(null);
-                              setImagePreview(null);
-                              if (fileInputRef.current) fileInputRef.current.value = '';
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="text-6xl mb-4">🖼️</div>
-                          <h3 className="text-lg font-display gradient-text mb-2">Drop image here</h3>
-                          <p className="text-hsl(var(--muted-foreground)) mb-4">or click to browse</p>
-                          <button 
-                            type="button" 
-                            className="btn-accent"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            Choose Image
-                          </button>
-                        </>
-                      )}
-                      <input 
-                        ref={fileInputRef}
-                        id="upload-image" 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </div>
+                    <input 
+                      ref={fileInputRef2}
+                      id="upload-image2" 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleFileChange(e, 2)}
+                    />
                   </div>
-                  
-                  {/* Transform Button */}
-                  <Button 
-                    type="submit" 
-                    className="w-full btn-secondary text-lg font-display"
-                    disabled={activeMutation.isPending || !imageFile}
-                  >
-                    {activeMutation.isPending ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-5 h-5 custom-spinner"></div>
-                        ditofying...
-                      </span>
-                    ) : (
-                      <span>ditofy</span>
-                    )}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+                </div>
+              </div>
+              
+              {/* Merge Button */}
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 text-white text-lg font-display py-4 hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition-all"
+                disabled={processMutation.isPending || !imageFile1 || !imageFile2}
+              >
+                {processMutation.isPending ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating IconicDuo...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    👥 Create IconicDuo
+                  </span>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
         
         {/* Result Display */}
         <div className="mt-8">
-          <div className="ditofy-card">
-            <div className="p-8">
-              {activeMutation.isPending ? (
+          <Card className="glass border-border/20">
+            <CardContent className="p-8">
+              {processMutation.isPending || isUpdating ? (
                 <div className="text-center py-16">
-                  <div className="w-16 h-16 custom-spinner mx-auto mb-4"></div>
-                  <h4 className="text-lg font-display gradient-text mb-2">ditofying...</h4>
-                  <p className="text-hsl(var(--muted-foreground))">Processing your image...</p>
+                  <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <h4 className="text-lg font-display gradient-text mb-2">Creating your IconicDuo...</h4>
+                  <p className="text-muted-foreground">This may take a moment as we merge your characters seamlessly</p>
                 </div>
-              ) : activeMutation.isError ? (
+              ) : processMutation.isError ? (
                 <div className="text-center py-16">
                   <div className="text-6xl mb-4">💔</div>
                   <h4 className="text-lg font-display text-red-400 mb-2">Oops! Something went wrong</h4>
-                  <p className="text-hsl(var(--muted-foreground))">
-                    {activeMutation.error instanceof Error ? activeMutation.error.message : "An unexpected error occurred"}
+                  <p className="text-muted-foreground">
+                    {processMutation.error instanceof Error ? processMutation.error.message : "An unexpected error occurred"}
                   </p>
                 </div>
-              ) : (generateMutation.data || editImageMutation.data) ? (
+              ) : processMutation.data ? (
                 <div className="text-center">
-                  <div className="inline-block ditofy-rounded overflow-hidden finger-gradient p-6 finger-shadow">
+                  <div className="inline-block rounded-lg overflow-hidden p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/10 shadow-lg">
                     <img 
-                      src={generateMutation.data?.url || editImageMutation.data?.url} 
-                      alt={generateMutation.data?.prompt || "Ditofied image"}
-                      className="max-w-full max-h-96 ditofy-rounded"
+                      src={processMutation.data?.url} 
+                      alt="IconicDuo Creation"
+                      className="max-w-full max-h-96 rounded-lg"
                     />
                   </div>
                   
                   {/* Download Button */}
                   <div className="mt-6">
                     <button 
-                      className="btn-accent"
+                      className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all"
                       onClick={async () => {
                         try {
-                          const imageUrl = generateMutation.data?.url || editImageMutation.data?.url;
-                          const imageId = generateMutation.data?.id || editImageMutation.data?.id || 'ditofied';
+                          const imageUrl = processMutation.data?.url;
+                          const imageId = processMutation.data?.id || 'iconicduo';
                           
                           if (!imageUrl) {
-                            toast.error({
+                            toast({
                               title: "Download failed",
-                              description: "No image URL available for download"
+                              description: "No image URL available for download",
+                              variant: "destructive"
                             });
                             return;
                           }
                           
-                          await downloadImage(imageUrl, `ditofy-${imageId}`);
+                          await downloadImage(imageUrl, `iconicduo-${imageId}`);
                           
-                          toast.success({
+                          toast({
                             title: "Download successful!",
-                            description: "Your ditofied image has been saved"
+                            description: "Your IconicDuo creation has been saved"
                           });
                         } catch (error) {
-                          toast.error({
+                          toast({
                             title: "Download failed",
-                            description: error instanceof Error ? error.message : "Failed to download image"
+                            description: error instanceof Error ? error.message : "Failed to download image",
+                            variant: "destructive"
                           });
                         }
                       }}
                     >
-                      Download
+                      Download IconicDuo
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-16">
-                  <div className="text-8xl mb-6">🖐️</div>
-                  <h4 className="text-xl font-display gradient-text mb-2">Ready to ditofy?</h4>
-                  <p className="text-hsl(var(--muted-foreground)) max-w-lg mx-auto">
-                    {activeTab === "generate" 
-                      ? "Describe what you want to ditofy"
-                      : "Upload an image to ditofy"
-                    }
+                  <div className="text-8xl mb-6">👥</div>
+                  <h4 className="text-xl font-display gradient-text mb-2">Ready to create your IconicDuo?</h4>
+                  <p className="text-muted-foreground max-w-lg mx-auto">
+                    Upload two character images and let AI create a stunning merged scene
                   </p>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>

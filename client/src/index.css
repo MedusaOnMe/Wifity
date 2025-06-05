@@ -310,11 +310,11 @@ body {
 }
 
 /* Modern card variants */
-.ditofy-card {
+.iconic-card {
   @apply modern-card;
 }
 
-.ditofy-rounded {
+.iconic-rounded {
   border-radius: calc(var(--radius) * 1.5);
 }
 

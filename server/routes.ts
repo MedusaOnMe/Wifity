@@ -1,7 +1,7 @@
 import express, { Application } from 'express';
 import http from 'http';
 import multer from 'multer';
-import openai, { testOpenAIConnection, generateImage, editImage } from './openai';
+import openai, { testOpenAIConnection, generateImage, editImage, combineImages } from './openai';
 import { storage } from './storage';
 import { generateImageSchema } from '@shared/schema';
 import { log } from './vite';
@@ -290,6 +290,37 @@ const upload = multer({
   },
 }).single('image');
 
+// Configure multer for dual image uploads
+const uploadDual = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, '../uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      log(`Upload directory created/verified: ${uploadDir}`);
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = crypto.randomBytes(16).toString('hex');
+      const filename = `${uniqueSuffix}-${file.originalname}`;
+      log(`Generated filename for upload: ${filename}`);
+      cb(null, filename);
+    },
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    log(`Received file: ${file.originalname}, type: ${file.mimetype}`);
+    if (!file.mimetype.startsWith('image/')) {
+      log(`Rejected file: ${file.originalname} - not an image`);
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+}).fields([{ name: 'image1', maxCount: 1 }, { name: 'image2', maxCount: 1 }]);
+
 // OpenAI client is imported from ./openai.ts
 
 export async function registerRoutes(app: Application) {
@@ -435,6 +466,121 @@ export async function registerRoutes(app: Application) {
       
       res.status(500).json({ message: 'Failed to generate image' });
     }
+  });
+
+  // Endpoint for combining two images
+  app.post('/api/images/combine', (req, res) => {
+    // Check API key status upfront
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        message: 'Server configuration error: OpenAI API key is not configured',
+        api_configured: false
+      });
+    }
+    
+    // Validate API key format
+    if (!apiKey.startsWith('sk-') || apiKey.length < 20) {
+      return res.status(500).json({
+        message: 'Server configuration error: OpenAI API key appears invalid',
+        api_configured: false
+      });
+    }
+    
+    // Set up response content type for consistency
+    res.setHeader('Content-Type', 'application/json');
+    
+    // Use multer to handle dual file upload
+    uploadDual(req, res, async (uploadErr) => {
+      let imagePath1 = '';
+      let imagePath2 = '';
+      
+      try {
+        // Check for upload errors
+        if (uploadErr) {
+          return res.status(400).json({ message: uploadErr.message || 'File upload failed' });
+        }
+
+        // Validate request
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        if (!files || !files.image1 || !files.image2 || !files.image1[0] || !files.image2[0]) {
+          return res.status(400).json({ message: 'Both images are required' });
+        }
+        
+        const prompt = req.body.prompt;
+        if (!prompt) {
+          return res.status(400).json({ message: 'Prompt is required' });
+        }
+        
+        // Save the image paths
+        imagePath1 = files.image1[0].path;
+        imagePath2 = files.image2[0].path;
+        
+        log(`Processing image combination with prompt: "${prompt.substring(0, 50)}..."`);
+        
+        // Read the image files
+        const image1Buffer = fs.readFileSync(imagePath1);
+        const image2Buffer = fs.readFileSync(imagePath2);
+        
+        // Call OpenAI to combine the images
+        const response = await combineImages(image1Buffer, image2Buffer, prompt);
+        
+        // Process response to get image URL
+        let imageUrl;
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          if ('url' in response.data[0] && response.data[0].url) {
+            imageUrl = response.data[0].url as string;
+          } else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
+            imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
+          }
+        }
+        
+        if (!imageUrl) {
+          throw new Error('No image URL found in OpenAI response');
+        }
+        
+        // Store image in our database
+        const image = await storage.createImage({
+          prompt: `IconicDuo: ${prompt.substring(0, 100)}`,
+          url: imageUrl,
+          size: "1024x1024",
+          userId: null,
+        });
+        
+        // Clean up temporary files
+        try {
+          if (fs.existsSync(imagePath1)) fs.unlinkSync(imagePath1);
+          if (fs.existsSync(imagePath2)) fs.unlinkSync(imagePath2);
+        } catch (e) {
+          log(`Warning: Failed to clean up temporary files: ${e}`);
+        }
+        
+        res.json(image);
+        
+      } catch (error: any) {
+        log(`Error combining images: ${error.message}`);
+        
+        // Clean up any files
+        if (imagePath1 && fs.existsSync(imagePath1)) {
+          try { fs.unlinkSync(imagePath1); } catch (e) {}
+        }
+        if (imagePath2 && fs.existsSync(imagePath2)) {
+          try { fs.unlinkSync(imagePath2); } catch (e) {}
+        }
+        
+        // Handle OpenAI API errors
+        if (error.response) {
+          return res.status(error.response.status || 500).json({
+            message: 'OpenAI API error',
+            error: error.response.data
+          });
+        }
+        
+        return res.status(500).json({ 
+          message: error.message || 'Error combining images'
+        });
+      }
+    });
   });
 
   // Endpoints for the asynchronous job system

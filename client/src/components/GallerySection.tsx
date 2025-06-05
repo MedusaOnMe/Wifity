@@ -67,14 +67,14 @@ export default function GallerySection() {
       <div className="container px-6 mx-auto relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-display gradient-text mb-4">
-            Gallery
+            IconicDuo Gallery
           </h2>
         </div>
       
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {[...Array(8)].map((_, index) => (
-              <div key={index} className="ditofy-card p-0 overflow-hidden interactive-hover">
+              <div key={index} className="iconic-card p-0 overflow-hidden interactive-hover">
                 <Skeleton className="w-full aspect-square" style={{background: 'hsl(var(--muted))'}} />
                 <div className="p-4">
                   <Skeleton className="h-4 w-full mb-2" style={{background: 'hsl(var(--muted))'}} />
@@ -84,7 +84,7 @@ export default function GallerySection() {
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center p-8 max-w-md mx-auto ditofy-card">
+          <div className="text-center p-8 max-w-md mx-auto iconic-card">
             <div className="text-6xl mb-4">💔</div>
             <p className="text-red-400 mb-2 font-display text-lg">Failed to load gallery</p>
             <p className="text-hsl(var(--muted-foreground)) text-sm">
@@ -94,12 +94,12 @@ export default function GallerySection() {
         ) : images && images.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
             {images.map((image: Image) => (
-              <div key={image.id} className="ditofy-card p-0 overflow-hidden cursor-pointer" onClick={() => handleImageClick(image)}>
+              <div key={image.id} className="iconic-card p-0 overflow-hidden cursor-pointer" onClick={() => handleImageClick(image)}>
                 <div className="aspect-square overflow-hidden finger-gradient p-2">
                   <img 
                     src={image.url} 
-                    alt="ditofied image" 
-                    className="w-full h-full object-cover ditofy-rounded"
+                    alt="IconicDuo creation" 
+                    className="w-full h-full object-cover iconic-rounded"
                     loading="lazy" 
                   />
                 </div>
@@ -107,13 +107,13 @@ export default function GallerySection() {
             ))}
           </div>
         ) : (
-          <div className="text-center p-8 max-w-md mx-auto ditofy-card">
-            <div className="text-8xl mb-6">🖐️</div>
+          <div className="text-center p-8 max-w-md mx-auto iconic-card">
+            <div className="text-8xl mb-6">👥</div>
             <p className="text-hsl(var(--foreground)) mb-2 font-display text-xl">
-              No images yet!
+              No IconicDuos yet!
             </p>
             <p className="text-hsl(var(--muted-foreground))">
-              ditofy some images to see them here!
+              Create some IconicDuos to see them here!
             </p>
           </div>
         )}
@@ -122,7 +122,7 @@ export default function GallerySection() {
       {/* Image details modal */}
       {selectedImage && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background: 'hsl(var(--background) / 0.8)'}}>
-          <div className="ditofy-card max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="iconic-card max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div className="relative">
               <button 
                 className="absolute top-4 right-4 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center z-10 hover:bg-red-600 transition-colors"
@@ -135,13 +135,13 @@ export default function GallerySection() {
                 <img 
                   src={selectedImage.url} 
                   alt="ditofied image" 
-                  className="w-full object-contain ditofy-rounded finger-shadow"
+                  className="w-full object-contain iconic-rounded finger-shadow"
                 />
               </div>
               
               <div className="p-8">
                 <h3 className="text-2xl font-display gradient-text mb-2">
-                  ditofied Image
+                  IconicDuo Creation
                 </h3>
                 <p className="text-sm text-hsl(var(--muted-foreground)) mb-6 font-mono">
                   Created: {new Date(selectedImage.timestamp).toLocaleString()}
@@ -150,7 +150,7 @@ export default function GallerySection() {
                 <div className="flex gap-4">
                   <Button 
                     className="btn-accent"
-                    onClick={() => downloadImage(selectedImage.url, `ditofy-${selectedImage.id.split('/').pop() || 'ditofied'}`)}
+                    onClick={() => downloadImage(selectedImage.url, `iconicduo-${selectedImage.id.split('/').pop() || 'creation'}`)}
                   >
                     Download
                   </Button>

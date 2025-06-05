@@ -13,10 +13,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
             <div className="w-12 h-12 finger-gradient rounded-full flex items-center justify-center finger-shadow">
-              <span className="text-2xl">🖐️</span>
+              <span className="text-2xl">👥</span>
             </div>
             <span className="font-display text-2xl font-bold gradient-text">
-              ditofy
+              IconicDuo
             </span>
           </Link>
 

@@ -15,12 +15,12 @@ export default function HeroSection() {
         <div className="max-w-4xl mx-auto">
           {/* Main title */}
           <h1 className="text-6xl md:text-8xl font-display gradient-text mb-6 tracking-tight">
-            ditofy
+            IconicDuo
           </h1>
 
           {/* Subtitle */}
           <p className="text-2xl md:text-3xl text-hsl(var(--muted-foreground)) mb-8 font-medium">
-            ditofy your images
+            Merge two characters into one
           </p>
 
           {/* CTA Buttons */}
@@ -29,7 +29,7 @@ export default function HeroSection() {
               onClick={scrollToGenerator}
               className="btn-primary text-lg px-8 py-4"
             >
-              ditofy
+              Create Iconic Duo
             </Button>
             <Button
               onClick={() =>
@@ -46,14 +46,6 @@ export default function HeroSection() {
           </div>
 
           {/* Contract address */}
-          <div className="mt-16 p-4 ditofy-card max-w-2xl mx-auto">
-            <p className="text-sm text-hsl(var(--muted-foreground)) mb-2 font-mono">
-              Contract Address:
-            </p>
-            <p className="font-mono text-sm gradient-text break-all">
-              4TEsG73mbBbAgm9zEggKyWi5uw3TWgCth9hEmf2ppump
-            </p>
-          </div>
         </div>
       </div>
 
