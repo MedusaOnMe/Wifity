@@ -38,50 +38,16 @@ export async function editImage(params: any) {
   }
 }
 
-// Combine two images using OpenAI Vision
+// Combine two images using OpenAI
 export async function combineImages(image1Buffer: Buffer, image2Buffer: Buffer, prompt: string) {
   try {
-    // Convert buffers to base64
-    const image1Base64 = image1Buffer.toString('base64');
-    const image2Base64 = image2Buffer.toString('base64');
-    
-    // Use Vision API to analyze both images and generate a combined description
-    const visionResponse = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${image1Base64}`
-              }
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:image/jpeg;base64,${image2Base64}`
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 300
-    });
+    // Enhanced prompt for better character preservation
+    const enhancedPrompt = `Create a photorealistic composite image that seamlessly combines two distinct characters into one natural scene. The characters should maintain their exact original appearance, facial features, clothing, hairstyles, and all visual characteristics. Place them together in a realistic setting such as standing side by side, sitting on a bench, in a car, at a diner, or another natural environment. The lighting and perspective should be consistent across both characters to create a believable, cohesive scene where both characters look like they naturally belong together while preserving their individual distinctive features completely unchanged.`;
 
-    // Extract the description from the vision response
-    const combinedDescription = visionResponse.choices[0]?.message?.content || 
-      "Two characters seamlessly merged into one cohesive scene";
-
-    // Generate the final combined image
+    // Generate the combined image using the enhanced prompt
     const imageResponse = await openai.images.generate({
       model: "gpt-image-1",
-      prompt: combinedDescription,
+      prompt: enhancedPrompt,
       n: 1,
       quality: "medium",
       size: "1024x1024"
