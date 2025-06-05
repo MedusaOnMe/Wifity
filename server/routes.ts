@@ -591,116 +591,54 @@ export async function registerRoutes(app: Application) {
 
         log(`Generating stack with ${uploadedImages.length} images`);
 
-        // Create a comprehensive prompt that preserves all main features of uploaded images
-        const imagePreservationPrompt = `Create a realistic "wif" stacking format image using the uploaded reference images. CRITICAL REQUIREMENTS:
-        
-        1. PRESERVE ALL MAIN FEATURES: Each uploaded image contains important subjects, objects, characters, or elements that MUST be preserved exactly as they appear - maintain their colors, shapes, distinctive features, clothing, expressions, poses, and visual characteristics.
-        
-        2. STACKING FORMAT: Stack all the main subjects/objects from the uploaded images vertically from bottom to top like a totem pole or tower. Each element should be clearly visible and properly proportioned.
-        
-        3. VISUAL FIDELITY: Keep the essential visual details of each uploaded image - if there's a person, maintain their appearance; if there's an object, keep its design and colors; if there's an animal, preserve its species and characteristics.
-        
-        4. COMPOSITION: Ensure all elements are visually connected in the stack, with realistic lighting, shadows, and depth. No floating elements.
-        
-        5. BACKGROUND: Use a neutral photographic background that complements the stacked elements.
-        
-        6. QUALITY: Generate a high-quality, photorealistic result that honors the source material while creating a cohesive stacked composition.
-        
-        The goal is to create a single image that showcases all the main subjects from the uploaded images in a stacked totem format while preserving their individual characteristics and visual integrity.`;
+        // Image-specific prompt for using uploaded images as reference
+        const imageBasedPrompt = `Generate a photorealistic image that combines all the characters/objects from the reference images into a single stacked composition, like a totem pole. Stack them vertically from bottom to top, preserving their exact appearance, colors, and details from each reference image.`;
 
-        // Use OpenAI Responses API which supports multiple input images
-        try {
-          // Convert image buffers to base64 for the Responses API
-          const imageContents = uploadedImages.map((buffer, index) => ({
-            type: "input_image",
-            image_url: `data:image/jpeg;base64,${buffer.toString('base64')}`
-          }));
+        // Use Image API edit endpoint with multiple images (as per OpenAI docs)
+        const { toFile } = await import('openai');
+        
+        // Convert buffers to File objects for OpenAI
+        const imageFiles = await Promise.all(
+          uploadedImages.map(async (buffer, index) => 
+            await toFile(buffer, `image${index}.png`, { type: 'image/png' })
+          )
+        );
 
-          const response = await openai.responses.create({
-            model: "gpt-4o",
-            input: [
-              {
-                role: "user",
-                content: [
-                  { type: "input_text", text: imagePreservationPrompt },
-                  ...imageContents
-                ]
-              }
-            ],
-            tools: [{ type: "image_generation" }],
-          });
+        const response = await openai.images.edit({
+          model: "gpt-image-1",
+          image: imageFiles,
+          prompt: imageBasedPrompt,
+        });
 
-          // Extract the generated image from the response
-          const imageGenerationCalls = response.output.filter(
-            (output: any) => output.type === "image_generation_call"
-          );
-
-          if (imageGenerationCalls.length === 0) {
-            throw new Error('No image generated');
+        let imageUrl;
+        if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+          if ('url' in response.data[0] && response.data[0].url) {
+            imageUrl = response.data[0].url as string;
+          } else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
+            imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
           }
-
-          const imageBase64 = imageGenerationCalls[0].result;
-          const imageUrl = `data:image/png;base64,${imageBase64}`;
-          
-          // Store image in database
-          const image = await storage.createImage({
-            prompt: `Wifify Stack: Created from ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`,
-            url: imageUrl,
-            size: "1024x1024",
-            userId: null,
-          });
-          
-          // Clean up temporary files
-          imagePaths.forEach(path => {
-            try {
-              if (fs.existsSync(path)) fs.unlinkSync(path);
-            } catch (e) {}
-          });
-          
-          res.json(image);
-
-        } catch (error: any) {
-          log(`Error with Responses API, falling back to simple generation: ${error.message}`);
-          
-          // Fallback to simple text generation
-          const response = await generateImage({
-            model: "gpt-image-1",
-            prompt: imagePreservationPrompt,
-            n: 1,
-            size: "1024x1024",
-            quality: "medium"
-          });
-        
-          let imageUrl;
-          if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-            if ('url' in response.data[0] && response.data[0].url) {
-              imageUrl = response.data[0].url as string;
-            } else if ('b64_json' in response.data[0] && response.data[0].b64_json) {
-              imageUrl = `data:image/png;base64,${response.data[0].b64_json as string}`;
-            }
-          }
-          
-          if (!imageUrl) {
-            throw new Error('No image URL found in OpenAI response');
-          }
-          
-          // Store image in database
-          const image = await storage.createImage({
-            prompt: `Wifify Stack: Created from ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`,
-            url: imageUrl,
-            size: "1024x1024",
-            userId: null,
-          });
-          
-          // Clean up temporary files
-          imagePaths.forEach(path => {
-            try {
-              if (fs.existsSync(path)) fs.unlinkSync(path);
-            } catch (e) {}
-          });
-          
-          res.json(image);
         }
+        
+        if (!imageUrl) {
+          throw new Error('No image URL found in OpenAI response');
+        }
+        
+        // Store image in database
+        const image = await storage.createImage({
+          prompt: `Wifify Stack: Created from ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`,
+          url: imageUrl,
+          size: "1024x1024",
+          userId: null,
+        });
+        
+        // Clean up temporary files
+        imagePaths.forEach(path => {
+          try {
+            if (fs.existsSync(path)) fs.unlinkSync(path);
+          } catch (e) {}
+        });
+        
+        res.json(image);
         
       } catch (error: any) {
         log(`Error generating stack: ${error.message}`);
