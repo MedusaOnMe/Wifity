@@ -8,10 +8,6 @@ const openai = new OpenAI({
 // Test OpenAI connection
 export async function testOpenAIConnection(): Promise<boolean> {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      console.log('OpenAI API key not configured - using dummy key for development');
-      return false;
-    }
     await openai.models.list();
     return true;
   } catch (error) {
@@ -23,9 +19,6 @@ export async function testOpenAIConnection(): Promise<boolean> {
 // Generate image using OpenAI
 export async function generateImage(params: any) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
     const response = await openai.images.generate(params);
     return response;
   } catch (error) {
@@ -37,9 +30,6 @@ export async function generateImage(params: any) {
 // Edit image using OpenAI
 export async function editImage(params: any) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
     const response = await openai.images.edit(params);
     return response;
   } catch (error) {
@@ -51,9 +41,6 @@ export async function editImage(params: any) {
 // Combine two images using OpenAI Vision
 export async function combineImages(image1Buffer: Buffer, image2Buffer: Buffer, prompt: string) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
     // Convert buffers to base64
     const image1Base64 = image1Buffer.toString('base64');
     const image2Base64 = image2Buffer.toString('base64');
